@@ -1,18 +1,24 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, ChevronDown, User, LogOut } from "lucide-react";
+import {
+  Person,
+  Logout,
+  Dashboard,
+  People,
+  CheckCircle,
+  Assessment,
+} from "@mui/icons-material";
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const navItems = [
-    { label: "Dashboard", path: "/dashboard", icon: "📊" },
-    { label: "Visitors", path: "/visitors", icon: "👥" },
-    { label: "Check-in", path: "/checkin", icon: "📝" },
-    { label: "Reports", path: "/reports", icon: "📈" },
+    { label: "Dashboard", path: "/dashboard", icon: Dashboard },
+    { label: "Visitors", path: "/visitors", icon: People },
+    { label: "Check-in", path: "/checkin", icon: CheckCircle },
+    { label: "Reports", path: "/reports", icon: Assessment },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -36,7 +42,7 @@ const Header = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="flex items-center gap-1">
             {navItems.map((item) => (
               <button
                 key={item.path}
@@ -47,7 +53,7 @@ const Header = () => {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <span>{item.icon}</span>
+                <item.icon fontSize="small" />
                 {item.label}
               </button>
             ))}
@@ -56,13 +62,13 @@ const Header = () => {
           {/* Right Side */}
           <div className="flex items-center gap-4">
             {/* Desktop User Menu */}
-            <div className="relative hidden sm:block">
+            <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-100 smooth-transition"
               >
-                <User size={20} />
-                <ChevronDown size={16} />
+                <Person fontSize="small" />
+                <span>▼</span>
               </button>
 
               {/* User Dropdown */}
@@ -78,7 +84,7 @@ const Header = () => {
                     }}
                     className="w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2 smooth-transition first:rounded-t-lg"
                   >
-                    <User size={18} />
+                    <Person fontSize="small" />
                     Profile
                   </button>
                   <button
@@ -88,71 +94,15 @@ const Header = () => {
                     }}
                     className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 flex items-center gap-2 smooth-transition last:rounded-b-lg"
                   >
-                    <LogOut size={18} />
+                    <Logout fontSize="small" />
                     Logout
                   </button>
                 </div>
               )}
             </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-100 smooth-transition"
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="border-t border-gray-200 bg-white py-3 animate-slideInDown md:hidden">
-            <div className="space-y-1 pb-3">
-              {navItems.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => {
-                    navigate(item.path);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`w-full px-4 py-3 text-left font-medium rounded-lg smooth-transition flex items-center gap-3 ${
-                    isActive(item.path)
-                      ? "bg-indigo-100 text-indigo-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  <span>{item.icon}</span>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Mobile User Menu */}
-            <div className="border-t border-gray-200 pt-3 mt-3 space-y-1">
-              <button
-                onClick={() => {
-                  navigate("/profile");
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full px-4 py-3 text-left text-gray-600 hover:bg-gray-100 flex items-center gap-2 rounded-lg smooth-transition"
-              >
-                <User size={18} />
-                Profile
-              </button>
-              <button
-                onClick={() => {
-                  navigate("/");
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 flex items-center gap-2 rounded-lg smooth-transition"
-              >
-                <LogOut size={18} />
-                Logout
-              </button>
-            </div>
-          </div>
-        )}
       </nav>
     </header>
   );

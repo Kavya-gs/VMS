@@ -1,16 +1,78 @@
-# React + Vite
+# Visitor Management System (VMS) - Development Summary
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
+This document summarizes the development work completed on the VMS application. The project is a professional Visitor Management System built with React, Vite, and Material UI with responsive design.
 
-Currently, two official plugins are available:
+## Technologies Used
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Core Framework
+- **React 19.2.0** - UI library
+- **React Router DOM 7.13.1** - Client-side routing
+- **Vite 7.3.1** - Build tool and dev server
 
-## React Compiler
+### UI & Styling
+- **Material UI 7.3.8** (@mui/material, @mui/icons-material)
+- **Tailwind CSS 3.4.17** - Utility-first CSS framework
+- **PostCSS 8.4.49** - CSS processor
+- **Autoprefixer 10.4.20** - CSS vendor prefixes
+- **Emotion** (@emotion/react, @emotion/styled) - CSS-in-JS
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Work Done Till Now
 
-## Expanding the ESLint configuration
+### 1. Header Component (`src/app/components/Header/index.jsx`)
+**Features:**
+- Sticky navigation bar with gradient styling
+- Logo section with VMS branding (📋 emoji icon)
+- Desktop navigation with 4 main sections:
+  - Dashboard
+  - Visitors 
+  - Check-in 
+  - Reports 
+- User menu dropdown (Profile, Logout)
+- Active route highlighting
+- Material UI icons for professional appearance
+- Smooth transitions and hover effects
+- Custom gradient text styling
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 2. Footer Component (`src/app/components/Footer/index.jsx`)
+**Features:**
+- Dark gray background with white text
+- 4-column layout:
+  - **Company Info**: Logo, description, social media icons
+  - **Quick Links**: Dashboard, Visitors, Reports, Settings
+  - **Support**: Help Center, Documentation, Contact, FAQ
+  - **Contact Info**: Phone, Email, Location
+- Social media buttons (Facebook, Twitter, LinkedIn, Instagram)
+- Divider line separating bottom section
+- Copyright year (dynamic)
+- Footer links (Privacy Policy, Terms of Service, Cookie Policy)
+- Navigation support via buttons (not just static links)
+- Arrow animations on hover for nav items
+
+### 3. MainLayout Component (`src/app/layouts/MainLayout.tsx`)
+**Features:**
+- Flexbox wrapper for consistent page structure
+- Contains Header and Footer
+- Main content area with flex-grow
+- Gradient background styling (light gradient)
+- Full height layout
+
+### 4. Styling Configuration
+
+#### Tailwind CSS Configuration (`tailwind.config.js`)
+- Custom color palette (indigo/purple theme)
+
+#### PostCSS Configuration (`postcss.config.js`)
+- Tailwind CSS plugin
+- Autoprefixer for browser compatibility
+
+#### Global Styles (`src/index.css`)
+- Tailwind directives (@tailwind base, components, utilities)
+- Google Fonts imports (Inter, Poppins)
+- Custom utilities for scrollbar and text selection styling
+- Glass effect and gradient utilities
+
+### 5. App Configuration
+- React Router setup with nested routes
+- Main layout wrapping all routes
+- Welcome page for home route

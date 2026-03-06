@@ -1,5 +1,15 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Facebook,
+  Twitter,
+  LinkedIn,
+  Instagram,
+  Phone,
+  Email,
+  LocationOn,
+  ArrowForward,
+} from "@mui/icons-material";
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -47,10 +57,10 @@ const Footer = () => {
             {/* Social Icons */}
             <div className="flex gap-3 pt-2">
               {[
-                { icon: "👤", href: "https://facebook.com" },
-                { icon: "🐦", href: "https://twitter.com" },
-                { icon: "💼", href: "https://linkedin.com" },
-                { icon: "📸", href: "https://instagram.com" },
+                { Icon: Facebook, href: "https://facebook.com" },
+                { Icon: Twitter, href: "https://twitter.com" },
+                { Icon: LinkedIn, href: "https://linkedin.com" },
+                { Icon: Instagram, href: "https://instagram.com" },
               ].map((item, idx) => (
                 <a
                   key={idx}
@@ -59,7 +69,7 @@ const Footer = () => {
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-gray-800 text-gray-400 hover:bg-indigo-600 hover:text-white hover:transform hover:-translate-y-1 smooth-transition"
                 >
-                  <span className="text-lg">{item.icon}</span>
+                  <item.Icon fontSize="small" />
                 </a>
               ))}
             </div>
@@ -78,7 +88,10 @@ const Footer = () => {
                     className="group flex items-center gap-2 text-sm text-gray-400 hover:text-white smooth-transition"
                   >
                     {link.label}
-                    <span className="transform translate-x-0 group-hover:translate-x-1 smooth-transition">→</span>
+                    <ArrowForward
+                      fontSize="small"
+                      className="transform translate-x-0 group-hover:translate-x-1 smooth-transition"
+                    />
                   </button>
                 </li>
               ))}
@@ -98,7 +111,10 @@ const Footer = () => {
                     className="group flex items-center gap-2 text-sm text-gray-400 hover:text-white smooth-transition"
                   >
                     {link.label}
-                    <span className="transform translate-x-0 group-hover:translate-x-1 smooth-transition">→</span>
+                    <ArrowForward
+                      fontSize="small"
+                      className="transform translate-x-0 group-hover:translate-x-1 smooth-transition"
+                    />
                   </button>
                 </li>
               ))}
@@ -112,7 +128,7 @@ const Footer = () => {
             </h4>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
-                <span className="text-indigo-500 mt-0.5">📞</span>
+                <Phone className="h-5 w-5 flex-shrink-0 text-indigo-500 mt-0.5" />
                 <div>
                   <p className="text-xs text-gray-500">Phone</p>
                   <a
@@ -124,7 +140,7 @@ const Footer = () => {
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-indigo-500 mt-0.5">✉️</span>
+                <Email className="h-5 w-5 flex-shrink-0 text-indigo-500 mt-0.5" />
                 <div>
                   <p className="text-xs text-gray-500">Email</p>
                   <a
@@ -136,7 +152,7 @@ const Footer = () => {
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-indigo-500 mt-0.5">📍</span>
+                <LocationOn className="h-5 w-5 flex-shrink-0 text-indigo-500 mt-0.5" />
                 <div>
                   <p className="text-xs text-gray-500">Location</p>
                   <p className="text-sm text-gray-400">
