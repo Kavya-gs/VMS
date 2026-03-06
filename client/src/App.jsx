@@ -1,34 +1,25 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import MainLayout from './app/layouts/MainLayout'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <Router>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<div style={{ textAlign: 'center', padding: '40px' }}><h1>Welcome to Visitor Management System</h1></div>} />
+          <Route path="dashboard" element={<div>Dashboard Page</div>} />
+          <Route path="visitors" element={<div>Visitors Page</div>} />
+          <Route path="checkin" element={<div>Check-in Page</div>} />
+          <Route path="reports" element={<div>Reports Page</div>} />
+          <Route path="settings" element={<div>Settings Page</div>} />
+          <Route path="privacy" element={<div>Privacy Policy</div>} />
+          <Route path="terms" element={<div>Terms of Service</div>} />
+          <Route path="contact" element={<div>Contact Us</div>} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   )
 }
 
