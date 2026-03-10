@@ -3,7 +3,7 @@ import { checkoutVistior, createVisitor, getVisitors } from "../controllers/visi
 
 const router = express.Router();
 // api routes
-router.post("/add", createVisitor);
+router.post("/checkin", createVisitor);
 router.get("/", getVisitors);
 router.put("/checkout/:id", checkoutVistior);
 

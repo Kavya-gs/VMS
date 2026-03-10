@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import visitorRoutes from "./routes/visitor.routes.js"
+import dashboardRoutes from "./routes/dashboard.routes.js";
 
 const app = express();
 
@@ -12,5 +13,8 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/visitors", visitorRoutes);
+
+app.use("/api/dashboard", dashboardRoutes);
+
 
 export default app;
