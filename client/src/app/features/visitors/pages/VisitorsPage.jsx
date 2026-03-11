@@ -1,8 +1,21 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import API from "../../../../services/api";
 
 const VisitorsPage = () => {
   const [visitors, setVisitors] = useState([]);
+
+  // filters and search
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const filterVisitor = visitors.filter((visitor) => {
+    const matchSearch = visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    visitor.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    visitor.purpose.toLowerCase().includes(searchTerm.toLowerCase())
+
+  const matchStatus = statusFilter === "all" || (setStatusFilter === "inside" && !visitor.checkOutTime) || (setStatusFilter === "checkedout" && visitor.checkOutTime);
+  return matchSearch && matchStatus;
+  });
 
   const fetchVisitors = async () => {
     try {
@@ -31,6 +44,21 @@ const VisitorsPage = () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Visitors</h1>
+      {/* filter and search */}
+      <div className="flex gap-4 mb-6">
+          <input 
+          type="text"
+          placeholder="Search Visitors..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)} 
+          className="border px-4 py-2 rounded w-64"
+          />
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border px-4 py-2 rounded">
+            <option value="all">All</option>
+            <option value="inside">Inside</option>
+            <option value="checkout">Checked-Out</option>
+          </select>
+      </div>
 
       <table className="w-full border border-gray-300">
         <thead className="bg-gray-100">
@@ -47,7 +75,7 @@ const VisitorsPage = () => {
         </thead>
 
         <tbody>
-          {visitors.map((visitor) => (
+          {filterVisitor.map((visitor) => (
             <tr key={visitor._id} className="text-center">
 
               <td className="border p-2">{visitor.name}</td>

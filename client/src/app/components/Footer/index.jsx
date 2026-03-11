@@ -10,6 +10,8 @@ import {
   LocationOn,
   ArrowForward,
 } from "@mui/icons-material";
+import logo from "../../../assets/image.png";
+
 
 const Footer = () => {
   const navigate = useNavigate();
@@ -24,9 +26,7 @@ const Footer = () => {
 
   const supportLinks = [
     { label: "Help Center", path: "/help" },
-    { label: "Documentation", path: "/docs" },
     { label: "Contact", path: "/contact" },
-    { label: "FAQ", path: "/faq" },
   ];
 
   const footerLinks = [
@@ -43,16 +43,13 @@ const Footer = () => {
           {/* Company Info */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-primary">
-                <span className="text-xl font-bold text-white">📋</span>
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg ">
+                <img src={logo} alt="logo" className="h-10 w-10" />
               </div>
-              <h3 className="font-display text-xl font-bold gradient-text">
-                VMS
-              </h3>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               Streamline your visitor check-in process with our secure and
-              efficient platform. Professional visitor management made simple.
+              efficient platform.
             </p>
             {/* Social Icons */}
             <div className="flex gap-3 pt-2">
@@ -135,7 +132,7 @@ const Footer = () => {
                     href="tel:+15551234567"
                     className="text-sm text-gray-400 hover:text-white smooth-transition"
                   >
-                    +1 (555) 123-4567
+                    +91 6679366761
                   </a>
                 </div>
               </li>
@@ -156,7 +153,7 @@ const Footer = () => {
                 <div>
                   <p className="text-xs text-gray-500">Location</p>
                   <p className="text-sm text-gray-400">
-                    123 Main St, City, State 12345
+                    Udyog Vihar, Gurugram
                   </p>
                 </div>
               </li>

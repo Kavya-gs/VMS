@@ -11,10 +11,23 @@ import {
 
 const DashboardPage = () => {
   const [visitors, setVisitors] = useState([]);
+  const [stats, setStats] = useState({});
 
   useEffect(() => {
     fetchVisitors();
   }, []);
+
+  useEffect(() => {
+    const fetchStats = async() => {
+      try {
+        const res = await API.get("/visitors/stats");
+        setStats(res.data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchStats();
+  },[]);
 
   const fetchVisitors = async () => {
     try {
@@ -43,19 +56,25 @@ const DashboardPage = () => {
       <div className="grid grid-cols-3 gap-6">
 
         <div className="bg-white shadow rounded p-6 text-center">
+          <h2 className="text-gray-500">Visitors Today</h2>
+          <p className="text-3xl font-bold text-red-600">{stats.visitorsToday}</p>
+        </div>
+
+        <div className="bg-white shadow rounded p-6 text-center">
           <h2 className="text-gray-500">Total Visitors</h2>
-          <p className="text-3xl font-bold">{totalVisitors}</p>
+          <p className="text-3xl font-bold">{stats.totalVisitors}</p>
         </div>
 
         <div className="bg-white shadow rounded p-6 text-center">
           <h2 className="text-gray-500">Visitors Inside</h2>
-          <p className="text-3xl font-bold text-green-600">{inside}</p>
+          <p className="text-3xl font-bold text-green-600">{stats.visitorsInside}</p>
         </div>
 
         <div className="bg-white shadow rounded p-6 text-center">
-          <h2 className="text-gray-500">Checked Out</h2>
-          <p className="text-3xl font-bold text-red-600">{checkedOut}</p>
+          <h2 className="text-gray-500">Checked Out Today</h2>
+          <p className="text-3xl font-bold text-red-600">{stats.checkedOutToday}</p>
         </div>
+        
 
       </div>
       <div className="bg-white shadow rounded p-6">

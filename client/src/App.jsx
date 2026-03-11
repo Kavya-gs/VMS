@@ -4,6 +4,7 @@ import MainLayout from './app/layouts/MainLayout'
 import DashboardPage from './app/features/dashboard/pages/DashboardPage'
 import CheckInPage from './app/features/visitors/pages/CheckInPage'
 import VisitorsPage from './app/features/visitors/pages/VisitorsPage'
+import CheckoutPage from './app/features/checkout/pages/CheckoutPage'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="visitors" element={<VisitorsPage />} />
           <Route path="checkin" element={<CheckInPage/>} />
+          <Route path="checkout" element={<CheckoutPage/>} />
           <Route path="reports" element={<div>Reports Page</div>} />
           <Route path="settings" element={<div>Settings Page</div>} />
           <Route path="privacy" element={<div>Privacy Policy</div>} />

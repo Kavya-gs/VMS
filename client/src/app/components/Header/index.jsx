@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import logo from "../../../assets/image.png";
 import {
   Person,
   Logout,
@@ -7,6 +8,8 @@ import {
   People,
   CheckCircle,
   Assessment,
+  CheckCircleOutline,
+  ExitToApp,
 } from "@mui/icons-material";
 
 const Header = () => {
@@ -19,6 +22,7 @@ const Header = () => {
     { label: "Visitors", path: "/visitors", icon: People },
     { label: "Check-in", path: "/checkin", icon: CheckCircle },
     { label: "Reports", path: "/reports", icon: Assessment },
+    { label: "Checkout", path: "/checkout", icon: ExitToApp},
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -29,17 +33,13 @@ const Header = () => {
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <div
-            onClick={() => navigate("/")}
-            className="flex cursor-pointer items-center gap-3 hover:opacity-80 smooth-transition"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary shadow-md">
-              <span className="text-lg font-bold text-white">📋</span>
-            </div>
-            <h1 className="font-display text-2xl font-bold gradient-text hidden sm:block">
-              VMS
-            </h1>
+          <div onClick={() => navigate("/dashboard")} className="flex items-center gap-3 cursor-pointer">
+          <img src={logo} alt="logo" className="h-10 w-10" />
+
+          <div className="leading-tight">
+          <p className="text-xs text-gray-500">Visitor Management System</p>
           </div>
+        </div>
 
           {/* Desktop Navigation */}
           <div className="flex items-center gap-1">
