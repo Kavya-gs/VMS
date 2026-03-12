@@ -77,3 +77,23 @@ export const getVisitorStats = async(req,res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// for approvals page -> when user status is approved
+export const approveVisitor = async(req, res) => {
+  const visitor = await Visitor.findByIdAndUpdate(
+    req.params.id,
+    {status: "approved"},
+    {new: true}
+  )
+  res.json(visitor);
+};
+
+//when user status is rejected
+export const rejectVisitor = async(req, res) => {
+  const visitor = await Visitor.findByIdAndUpdate(
+    req.params.id,
+    {status: "rejected"},
+    {new: true}
+  )
+  res.json(visitor);
+}

@@ -23,6 +23,7 @@ const Header = () => {
     { label: "Check-in", path: "/checkin", icon: CheckCircle },
     { label: "Reports", path: "/reports", icon: Assessment },
     { label: "Checkout", path: "/checkout", icon: ExitToApp},
+    { label: "Approvals", path: "/approvals", icon: CheckCircle},
   ];
 
   const isActive = (path) => location.pathname === path;

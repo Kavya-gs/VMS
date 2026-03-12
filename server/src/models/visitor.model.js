@@ -27,6 +27,11 @@ const visitorSchema = new mongoose.Schema(
         checkOutTime: {
             type: Date,
         },
+        status: {
+            type: String,
+            enum: ["pending", "approved", "rejected", "checked-in", "checked-out"],
+            default: "pending",
+        }
     },
     {timestamps: true}
 );

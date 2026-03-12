@@ -8,23 +8,31 @@ const VisitorsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const filterVisitor = visitors.filter((visitor) => {
-    const matchSearch = visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    visitor.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    visitor.purpose.toLowerCase().includes(searchTerm.toLowerCase())
 
-  const matchStatus = statusFilter === "all" || (setStatusFilter === "inside" && !visitor.checkOutTime) || (setStatusFilter === "checkedout" && visitor.checkOutTime);
+const filterVisitor = visitors.filter((visitor) => {
+
+  const matchSearch =
+    visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    visitor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    visitor.purpose.toLowerCase().includes(searchTerm.toLowerCase());
+
+  const matchStatus =
+    statusFilter === "all" ||
+    (statusFilter === "inside" && !visitor.checkOutTime) ||
+    (statusFilter === "checkedout" && visitor.checkOutTime!== null && visitor.checkOutTime !== undefined);
+
   return matchSearch && matchStatus;
-  });
+});
 
   const fetchVisitors = async () => {
-    try {
-      const res = await API.get("/visitors");
-      setVisitors(res.data);
-    } catch (error) {
-      console.error("Error fetching visitors", error);
-    }
-  };
+  try {
+    const res = await API.get("/visitors");
+    const Resvisitors = res.data.filter((visitor) => visitor.status === "approved");
+    setVisitors(Resvisitors);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   useEffect(() => {
     fetchVisitors();
@@ -56,7 +64,7 @@ const VisitorsPage = () => {
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border px-4 py-2 rounded">
             <option value="all">All</option>
             <option value="inside">Inside</option>
-            <option value="checkout">Checked-Out</option>
+            <option value="checkedout">Checked-Out</option>
           </select>
       </div>
 
@@ -119,7 +127,6 @@ const VisitorsPage = () => {
                   <span className="text-gray-400">—</span>
                 )}
               </td>
-
             </tr>
           ))}
         </tbody>

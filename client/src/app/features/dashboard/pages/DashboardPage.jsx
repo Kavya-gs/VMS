@@ -74,7 +74,7 @@ const DashboardPage = () => {
           <h2 className="text-gray-500">Checked Out Today</h2>
           <p className="text-3xl font-bold text-red-600">{stats.checkedOutToday}</p>
         </div>
-        
+
 
       </div>
       <div className="bg-white shadow rounded p-6">
