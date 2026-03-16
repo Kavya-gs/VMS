@@ -8,7 +8,6 @@ import {
   People,
   CheckCircle,
   Assessment,
-  CheckCircleOutline,
   ExitToApp,
 } from "@mui/icons-material";
 
@@ -27,7 +26,13 @@ const Header = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  }
 
+  const role = localStorage.getItem("role");
+  
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white shadow-md">
       {/* Main Navbar */}
@@ -89,10 +94,7 @@ const Header = () => {
                     Profile
                   </button>
                   <button
-                    onClick={() => {
-                      navigate("/");
-                      setUserMenuOpen(false);
-                    }}
+                    onClick={handleLogout}
                     className="w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 flex items-center gap-2 smooth-transition last:rounded-b-lg"
                   >
                     <Logout fontSize="small" />
