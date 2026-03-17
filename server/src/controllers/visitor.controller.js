@@ -46,11 +46,10 @@ export const checkoutVisitor = async (req, res) => {
       message: "Checkout failed",
       error: error.message
     });
-
   }
 };
 
-export const getVisitorStats = async(req,res) => {
+export const getVisitorStats = async(req, res) => {
     try {
         const totalVisitors = await Visitor.countDocuments();
     const visitorsInside = await Visitor.countDocuments({

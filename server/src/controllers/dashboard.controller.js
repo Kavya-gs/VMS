@@ -15,7 +15,7 @@ export const getDashboardStats = async(req, res) => {
     const checkedOutVisitors = await Visitor.countDocuments({
         checkOutTime: {$ne: null}
     })
-    
+
     res.json({
         totalVisitorsToday,
         checkedInVisitors,
