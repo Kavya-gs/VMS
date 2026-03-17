@@ -8,7 +8,7 @@ import ProtectedRoute from "./ProtectedRoute";
 const AppRoutes = () => {
   return (
   <Routes>
-  {/* Login page (no header/footer) */}
+  {/* Login page */}
   <Route path="/login" element={<LoginPage />} />
 
   {/* Protected routes */}
