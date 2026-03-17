@@ -21,7 +21,6 @@ const Header = () => {
     { label: "Visitors", path: "/visitors", icon: People },
     { label: "Check-in", path: "/checkin", icon: CheckCircle },
     { label: "Reports", path: "/reports", icon: Assessment },
-    { label: "Checkout", path: "/checkout", icon: ExitToApp},
     { label: "Approvals", path: "/approvals", icon: CheckCircle},
   ];
 

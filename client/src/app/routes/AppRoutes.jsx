@@ -1,14 +1,13 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-
 import MainLayout from "../layouts/MainLayout";
 import DashboardPage from "../features/dashboard/pages/DashboardPage";
 import LoginPage from "../features/auth/pages/LoginPage";
+import ProtectedRoute from "./ProtectedRoute";
 
 const AppRoutes = () => {
   return (
-    <Routes>
-
+  <Routes>
   {/* Login page (no header/footer) */}
   <Route path="/login" element={<LoginPage />} />
 
@@ -18,18 +17,13 @@ const AppRoutes = () => {
     element={
       <ProtectedRoute>
         <MainLayout />
-      </ProtectedRoute>
-    }
-  >
+      </ProtectedRoute>}>
     <Route path="dashboard" element={<DashboardPage />} />
     <Route path="visitors" element={<VisitorsPage />} />
     <Route path="checkin" element={<CheckInPage />} />
-    <Route path="checkout" element={<CheckoutPage />} />
     <Route path="approvals" element={<ApprovalsPage />} />
   </Route>
-
 </Routes>
-    
   );
 };
 

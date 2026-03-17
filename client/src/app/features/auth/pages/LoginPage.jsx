@@ -8,7 +8,6 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  
   const handleLogin = async(e) => {
     e.preventDefault();
     try {
@@ -16,9 +15,25 @@ const LoginPage = () => {
         email,
         password,
       })
+      const roleFromAPI = res.data.role || res.data?.user.role;
+      if(!roleFromAPI){
+        alert("Role missing");
+      }
+      const role = roleFromAPI.toLowerCase();
       localStorage.setItem("token", res.data.token);
-      navigate("/dashboard");
-
+      localStorage.setItem("role", role);
+      
+      if (role === "admin" || role === "security") {
+        navigate("/dashboard");
+      } 
+      else if (role === "visitor") {
+        navigate("/checkin");
+      }
+      else{
+        navigate("/dashboard");
+      }
+      localStorage.setItem("role", role.toLowerCase());
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       console.error("Error logging in", error);
       alert("Login failed");
