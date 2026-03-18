@@ -1,6 +1,6 @@
 import { useState } from "react"
-import API from "../../../../services/api";
 import { useNavigate } from "react-router-dom";
+import API from "../../../../services/api";
 
 const LoginPage = () => {
 
@@ -33,7 +33,6 @@ const LoginPage = () => {
         navigate("/dashboard");
       }
       localStorage.setItem("role", role.toLowerCase());
-      navigate("/dashboard", { replace: true });
     } catch (error) {
       console.error("Error logging in", error);
       alert("Login failed");
@@ -63,4 +62,4 @@ const LoginPage = () => {
   )
 }
 
-export default LoginPage
+export default LoginPage;

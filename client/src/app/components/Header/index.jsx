@@ -16,22 +16,25 @@ const Header = () => {
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+  const role = localStorage.getItem("role");
+  const token = localStorage.getItem("token");
+
   const navItems = [
-    { label: "Dashboard", path: "/dashboard", icon: Dashboard },
-    { label: "Visitors", path: "/visitors", icon: People },
-    { label: "Check-in", path: "/checkin", icon: CheckCircle },
-    { label: "Reports", path: "/reports", icon: Assessment },
-    { label: "Approvals", path: "/approvals", icon: CheckCircle},
+    { label: "Dashboard", path: "/dashboard", icon: Dashboard, roles: ["admin", "security", "visitor"] },
+    { label: "Visitors", path: "/visitors", icon: People, roles: ["admin", "security"] },
+    { label: "Check-in", path: "/checkin", icon: CheckCircle, roles: ["visitor", "security"] },
+    { label: "Reports", path: "/reports", icon: Assessment, roles: ["admin"] },
+    { label: "Approvals", path: "/approvals", icon: CheckCircle, roles: ["admin"]},
   ];
 
   const isActive = (path) => location.pathname === path;
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("role");
     navigate("/login");
   }
-
-  const role = localStorage.getItem("role");
   
+  if(!token) return null;
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white shadow-md">
       {/* Main Navbar */}
@@ -48,7 +51,7 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <div className="flex items-center gap-1">
-            {navItems.map((item) => (
+            {navItems.filter((item) => item.roles.includes(role)).map((item) => (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
