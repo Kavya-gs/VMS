@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
   Legend
 } from "recharts";
-// import VisitorDashboard from "./VisitorDashboard";
+import VisitorDashboard from "./VisitorDashboard";
 
 const DashboardPage = () => {
   const [visitors, setVisitors] = useState([]);
@@ -16,9 +16,9 @@ const DashboardPage = () => {
 
   const role = localStorage.getItem("role") || "visitor";
 
-  // if(role === "visitor"){
-  //   return <VisitorDashboard />;
-  // }
+  if(role === "visitor"){
+    return <VisitorDashboard />;
+  }
 
   useEffect(() => {
   if (role === "admin" || role === "security") {

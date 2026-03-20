@@ -40,7 +40,7 @@ const filterVisitor = visitors.filter((visitor) => {
 
   const handleCheckout = async (id) => {
     try {
-      await API.put(`/visitors/checkout/${id}`);
+      await API.put(`/visitors/checkout/${currentVisit._id}`);
       alert("Visitor checked out");
       fetchVisitors(); // refresh table
     } catch (error) {
@@ -118,7 +118,7 @@ const filterVisitor = visitors.filter((visitor) => {
               <td className="border p-2">
                 {!visitor.checkOutTime ? (
                   <button
-                    onClick={() => handleCheckout(visitor._id)}
+                    onClick={handleCheckout}
                     className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
                   >
                     Checkout

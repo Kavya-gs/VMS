@@ -27,6 +27,10 @@ const visitorSchema = new mongoose.Schema(
         checkOutTime: {
             type: Date,
         },
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
         status: {
             type: String,
             enum: ["pending", "approved", "rejected", "checked-in", "checked-out"],

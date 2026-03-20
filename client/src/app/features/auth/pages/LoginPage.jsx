@@ -27,12 +27,13 @@ const LoginPage = () => {
         navigate("/dashboard");
       } 
       else if (role === "visitor") {
-        navigate("/checkin");
+        navigate("/dashboard");
       }
       else{
         navigate("/dashboard");
       }
       localStorage.setItem("role", role.toLowerCase());
+      
     } catch (error) {
       console.error("Error logging in", error);
       alert("Login failed");

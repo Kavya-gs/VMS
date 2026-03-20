@@ -4,6 +4,7 @@ import MainLayout from "../layouts/MainLayout";
 import DashboardPage from "../features/dashboard/pages/DashboardPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import ProtectedRoute from "./ProtectedRoute";
+import VisitorDashboard from "../features/dashboard/pages/VisitorDashboard";
 
 const AppRoutes = () => {
   return (
@@ -22,6 +23,7 @@ const AppRoutes = () => {
     <Route path="visitors" element={<VisitorsPage />} />
     <Route path="checkin" element={<CheckInPage />} />
     <Route path="approvals" element={<ApprovalsPage />} />
+    <Route path="visitordashboard" element={<VisitorDashboard />} />
   </Route>
 </Routes>
   );

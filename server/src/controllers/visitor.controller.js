@@ -1,13 +1,18 @@
 import Visitor from "../models/visitor.model.js";
 
 // create a visitor
-export const createVisitor = async( req, res) => {
-    try {
-        const visitor = await Visitor.create(req.body);
-        res.status(201).json(visitor);
-    } catch (error) {
-        res.status(500).json({message: error.message});
-    }
+export const createVisitor = async (req, res) => {
+  try {
+    console.log("REQ.USER", req.user);
+    const visitor = await Visitor.create({
+      ...req.body,
+      userId: req.user.id,  
+    });
+
+    res.status(201).json(visitor);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 // Fetch all visitors
@@ -28,8 +33,12 @@ export const checkoutVisitor = async (req, res) => {
 
     const visitor = await Visitor.findById(id);
 
-    if (!visitor) {
-      return res.status(404).json({ message: "Visitor not found" });
+    if (
+      visitor.userId.toString() !== req.user.id &&
+      req.user.role !== "admin" &&
+      req.user.role !== "security"
+    ) {
+      return res.status(403).json({ message: "Not allowed" });
     }
 
     visitor.checkOutTime = new Date();
@@ -96,3 +105,14 @@ export const rejectVisitor = async(req, res) => {
   )
   res.json(visitor);
 }
+
+export const getMyVisits = async (req, res) => {
+  try {
+    const visits = await Visitor.find({ userId: req.user.id })
+      .sort({ createdAt: -1 });
+
+    res.json(visits);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching visits" });
+  }
+};

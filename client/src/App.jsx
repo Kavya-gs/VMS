@@ -10,6 +10,7 @@ import RoleProtectedRoute from './app/routes/RoleProtectedRoute'
 import ProtectedRoute from './app/routes/ProtectedRoute'
 import ReportPage from './app/features/reports/pages/ReportPage'
 import VisitorDashboard from './app/features/dashboard/pages/VisitorDashboard'
+import CheckoutPage from './app/features/checkout/pages/CheckoutPage'
 
 function App() {
   return (
@@ -32,7 +33,7 @@ function App() {
           <Route
             path="dashboard"
             element={
-              <RoleProtectedRoute allowedRoles={["admin", "security"]}>
+              <RoleProtectedRoute allowedRoles={["admin", "security", "visitor"]}>
                 <DashboardPage />
               </RoleProtectedRoute>
             }
@@ -79,6 +80,14 @@ function App() {
             element={
               <RoleProtectedRoute allowedRoles={["visitor"]}>
                 <VisitorDashboard />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="checkout"
+            element={
+              <RoleProtectedRoute allowedRoles={["visitor", "security"]}>
+                <CheckoutPage />
               </RoleProtectedRoute>
             }
           />
