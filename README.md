@@ -155,93 +155,131 @@ Created REST APIs to manage visitors.
 
 # Frontend Feature Implementation
 
-## 8. Check-In Page (`CheckInPage.jsx`)
+8. Check-In Page
 
-Implemented visitor **check-in form**.
+Form validation using React Hook Form + Yup
 
-**Features**
+Sends request to backend
 
-* Form submission using **React Hook Form**
-* Form validation using **Yup**
-* API integration using **Axios**
-* Submits visitor data to backend
+Stores visitor data with logged-in user
 
-**Workflow**
+9. Visitor Dashboard (NEW 🚀)
+Features
 
-```
-User fills form
-      ↓
-React form validation
-      ↓
-POST /api/visitors/checkin
-      ↓
-Visitor stored in MongoDB
-```
+Fetch user-specific visits (/my-visits)
 
-## 9. Visitors List Page (`VisitorsPage.jsx`)
+Show current active visit
 
-Created **dynamic visitor table** connected to backend.
+Display:
 
-**Features**
+Status
 
-* Fetch visitors from API
-* Display visitor details in table
-* Show check-in and check-out timestamps
-* Display visitor status
+Purpose
 
-**Status Indicators**
+Host
 
-* 🟢 **Inside** — visitor currently inside
-* 🔴 **Checked Out** — visitor has exited
+QR Code Integration
 
-## 10. Visitor Checkout Functionality
+Generates QR code for approved visitors
 
-Implemented visitor **checkout action**.
+Used for entry scanning
 
-**Features**
+10. Visitor History Table
 
-* Checkout button for active visitors
-* Updates checkout time in database
-* Table refresh after checkout
-* API integration with backend
+Shows all past visits
 
-**Workflow**
+Status-based color indicators:
 
-```
+🟡 Pending
+
+🟢 Approved
+
+🔴 Rejected / Checked-out
+
+11. Checkout Page (NEW 🚀)
+Features
+
+Displays visitors eligible for checkout
+
+Checkout action updates backend
+
+Role-based access (Security/Admin)
+
+Workflow
 User clicks Checkout
-       ↓
+        ↓
 PUT /api/visitors/checkout/:id
-       ↓
-Database updates checkout time
-       ↓
-Frontend refreshes visitor list
+        ↓
+Status updated in DB
+        ↓
+UI refreshes automatically
 
-# Dashboard Improvements
+12. Dashboard Auto Refresh 
 
-## 11. Dashboard Statistics
+After checkout, dashboard updates instantly
 
-Connected dashboard to backend APIs.
+Uses re-fetch logic to sync UI with backend
 
-**Features**
+13. Role-Based Access Control (NEW 🔐)
+Access Rules
 
-* Total visitors count
-* Visitors currently inside
-* Checked-out visitors
+Visitor:
 
-Data is fetched dynamically from:
+Can check-in
 
-```
-GET /api/visitors
-```
-# Current Application Features
+Can view own visits
 
-The system currently supports:
+Security:
 
-* Visitor Check-in
-* Visitor Listing
-* Visitor Check-out
-* MongoDB data storage
-* Dashboard visitor statistics
-* API-based frontend-backend integration
+Can checkout visitors
 
+Admin:
+
+Can approve/reject visitors
+
+Can view stats
+
+14. API Error Handling Improvements
+
+Handled common issues:
+
+401 Unauthorized → Missing/invalid token
+
+403 Forbidden → Role restriction
+
+Network errors handling in frontend
+
+Dashboard Improvements
+
+15. Dashboard Statistics
+
+Total visitors
+
+Active visitors
+
+Checked-out visitors
+
+Data fetched from backend
+
+Current Application Features
+
+The system now supports:
+
+Visitor Check-in
+
+Visitor Approval/Rejection
+
+Visitor Check-out
+
+Visitor Dashboard (user-specific)
+
+QR Code for entry
+
+Role-based authentication
+
+Secure API access
+
+MongoDB storage
+
+Dashboard analytics
 
