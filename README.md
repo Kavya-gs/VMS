@@ -155,7 +155,7 @@ Created REST APIs to manage visitors.
 
 # Frontend Feature Implementation
 
-8. Check-In Page
+## 8. Check-In Page
 
 Form validation using React Hook Form + Yup
 
@@ -163,7 +163,7 @@ Sends request to backend
 
 Stores visitor data with logged-in user
 
-9. Visitor Dashboard (NEW 🚀)
+## 9. Visitor Dashboard (NEW 🚀)
 Features
 
 Fetch user-specific visits (/my-visits)
@@ -184,7 +184,7 @@ Generates QR code for approved visitors
 
 Used for entry scanning
 
-10. Visitor History Table
+## 10. Visitor History Table
 
 Shows all past visits
 
@@ -196,7 +196,7 @@ Status-based color indicators:
 
 🔴 Rejected / Checked-out
 
-11. Checkout Page (NEW 🚀)
+## 11. Checkout Page (NEW 🚀)
 Features
 
 Displays visitors eligible for checkout
@@ -205,16 +205,7 @@ Checkout action updates backend
 
 Role-based access (Security/Admin)
 
-Workflow
-User clicks Checkout
-        ↓
-PUT /api/visitors/checkout/:id
-        ↓
-Status updated in DB
-        ↓
-UI refreshes automatically
-
-12. Dashboard Auto Refresh 
+## 12. Dashboard Auto Refresh 
 
 After checkout, dashboard updates instantly
 
@@ -223,23 +214,23 @@ Uses re-fetch logic to sync UI with backend
 13. Role-Based Access Control (NEW 🔐)
 Access Rules
 
-Visitor:
+## Visitor:
 
 Can check-in
 
 Can view own visits
 
-Security:
+## Security:
 
 Can checkout visitors
 
-Admin:
+## Admin:
 
 Can approve/reject visitors
 
 Can view stats
 
-14. API Error Handling Improvements
+## 14. API Error Handling Improvements
 
 Handled common issues:
 
@@ -251,7 +242,7 @@ Network errors handling in frontend
 
 Dashboard Improvements
 
-15. Dashboard Statistics
+## 15. Dashboard Statistics
 
 Total visitors
 
@@ -263,7 +254,7 @@ Data fetched from backend
 
 Current Application Features
 
-The system now supports:
+## The system now supports:
 
 Visitor Check-in
 
