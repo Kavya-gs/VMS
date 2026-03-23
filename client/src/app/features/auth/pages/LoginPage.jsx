@@ -25,9 +25,6 @@ const LoginPage = () => {
       
       if (role === "admin" || role === "security") {
         navigate("/dashboard");
-      } 
-      else if (role === "visitor") {
-        navigate("/dashboard");
       }
       else{
         navigate("/dashboard");

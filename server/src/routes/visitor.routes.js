@@ -6,7 +6,8 @@ import {
   getVisitors,
   getVisitorStats,
   rejectVisitor,
-  getMyVisits
+  getMyVisits,
+  getVisitorByDate
 } from "../controllers/visitor.controller.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -36,5 +37,11 @@ router.get(
   roleMiddleware("visitor"),
   getMyVisits
 );
+
+router.get("/reports",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getVisitorByDate
+)
 
 export default router;

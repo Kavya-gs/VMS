@@ -11,10 +11,14 @@ import ProtectedRoute from './app/routes/ProtectedRoute'
 import ReportPage from './app/features/reports/pages/ReportPage'
 import VisitorDashboard from './app/features/dashboard/pages/VisitorDashboard'
 import CheckoutPage from './app/features/checkout/pages/CheckoutPage'
+import { Toaster } from "react-hot-toast";
+import ProfilePage from './app/features/auth/pages/ProfilePage'
 
 function App() {
   return (
-    <Router>
+    <>
+      <Toaster position='top-right'/>
+      <Router>
       <Routes>
         {/* Public Route */}
         <Route path="/login" element={<LoginPage />} />
@@ -91,9 +95,19 @@ function App() {
               </RoleProtectedRoute>
             }
           />
+          <Route
+            path="profile"
+            element={
+              <RoleProtectedRoute allowedRoles={["visitor", "security", "admin"]}>
+                <ProfilePage />
+              </RoleProtectedRoute>
+            }
+          />
         </Route>
       </Routes>
     </Router>
+    </>
+    
   )
 }
 

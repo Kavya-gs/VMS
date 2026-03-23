@@ -116,3 +116,33 @@ export const getMyVisits = async (req, res) => {
     res.status(500).json({ message: "Error fetching visits" });
   }
 };
+
+export const getVisitorByDate = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query; 
+
+    let filter = {};
+
+    if (startDate && endDate) {
+      const from = new Date(startDate);
+      const to = new Date(endDate);
+
+      to.setHours(23, 59, 59, 999);
+
+      // ✅ Prevent invalid date crash
+      if (!isNaN(from) && !isNaN(to)) {
+        filter.createdAt = {
+          $gte: from,
+          $lte: to,
+        };
+      }
+    }
+
+    const visitors = await Visitor.find(filter).sort({ createdAt: -1 });
+
+    res.status(200).json(visitors);
+  } catch (error) {
+    console.error("Date Filter Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};

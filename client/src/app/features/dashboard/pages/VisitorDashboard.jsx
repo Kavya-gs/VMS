@@ -25,6 +25,15 @@ const VisitorDashboard = () => {
     }
   };
 
+  const handleCheckout = async(id) => {
+    try {
+      const res = await API.put(`/visitors/checkout/${id}`);
+      fetchVisitors();
+    } catch (error) {
+      console.error("Error fetching", error);
+    }
+  }
+
   const navigate = useNavigate();
 
   return (
@@ -87,6 +96,7 @@ const VisitorDashboard = () => {
               <th className="p-2 border">Purpose</th>
               <th className="p-2 border">Host</th>
               <th className="p-2 border">Status</th>
+              <th className="p-2 border">Checked Out</th>
             </tr>
           </thead>
 
@@ -109,6 +119,13 @@ const VisitorDashboard = () => {
                     }`}>
                       {visit.status}
                     </span>
+                  </td>
+                  <td className="p-2 border">{visit.checkOutTime ? (
+                  <span className="text-green-600 font-medium">Yes</span>) : (
+                  <button onClick={() => handleCheckout(visit._id)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
+                  Checkout
+                  </button>
+                  )}
                   </td>
                 </tr>
               ))

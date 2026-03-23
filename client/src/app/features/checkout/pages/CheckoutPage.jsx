@@ -17,7 +17,7 @@ const fetchVisitors = async () => {
   try {
     const endpoint =
       role === "visitor" ? "/visitors/my-visits" : "/visitors";
-
+      
     const res = await API.get(endpoint);
     setVisitors(res.data);
   } catch (error) {
