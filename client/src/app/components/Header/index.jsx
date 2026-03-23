@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../../../assets/image.png";
 import {
   Person,
@@ -34,7 +34,7 @@ const Header = () => {
     localStorage.removeItem("role");
     navigate("/login");
   }
-  
+i  
   if(!token) return null;
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white shadow-md">
@@ -108,7 +108,6 @@ const Header = () => {
             </div>
           </div>
         </div>
-
       </nav>
     </header>
   );
