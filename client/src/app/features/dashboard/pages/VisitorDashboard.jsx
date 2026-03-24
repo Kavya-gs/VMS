@@ -99,7 +99,6 @@ const VisitorDashboard = () => {
               <th className="p-2 border">Checked Out</th>
             </tr>
           </thead>
-
           <tbody>
             {visits.length > 0 ? (
               visits.map((visit) => (

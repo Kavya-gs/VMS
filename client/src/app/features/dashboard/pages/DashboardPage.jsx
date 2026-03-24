@@ -66,7 +66,7 @@ const DashboardPage = () => {
         <>
           <div className="grid grid-cols-4 gap-6">
             <StatCard title="Visitors Today" value={stats.visitorsToday} color="text-blue-600" />
-            <StatCard title="Total Visitors" value={stats.totalVisitors} />
+            <StatCard title="Total Visitors" value={stats.totalVisitors} color="text-teal-500"/>
             <StatCard title="Visitors Inside" value={stats.visitorsInside} color="text-green-600" />
             <StatCard title="Checked Out Today" value={stats.checkedOutToday} color="text-red-600" />
           </div>

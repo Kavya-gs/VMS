@@ -19,7 +19,7 @@ router.post("/checkin", authMiddleware, createVisitor);
 
 router.get("/", authMiddleware, roleMiddleware("admin", "security"), getVisitors);
 
-router.put("/checkout/:id", authMiddleware, roleMiddleware("visitor"), checkoutVisitor);
+router.put("/checkout/:id", authMiddleware, roleMiddleware("visitor", "security"), checkoutVisitor);
 
 router.get("/stats", authMiddleware, isAdmin , getVisitorStats);
 

@@ -44,15 +44,24 @@ const fetchVisitors = async () => {
           <div>
             <p>{v.name}</p>
             <p className="text-sm text-gray-500">{v.purpose}</p>
+            {v.checkOutTime && (
+              <p className="text-sm text-green-600 mt-1">
+                Checked out on:{" "}
+                {new Date(v.checkOutTime).toLocaleDateString()} at{" "}
+                {new Date(v.checkOutTime).toLocaleTimeString()}
+              </p>
+            )}
           </div>
 
-          {!v.checkOutTime && (
+          {!v.checkOutTime ? (
             <button
               onClick={() => handleCheckout(v._id)}
               className="bg-red-500 text-white px-3 py-1 rounded"
             >
               Checkout
             </button>
+          ) : (
+            <span className="text-green-600 font-medium">Completed</span>
           )}
         </div>
       ))}
