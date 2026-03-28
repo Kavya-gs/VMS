@@ -18,7 +18,7 @@ const VisitorDashboard = () => {
 
       setVisits(res.data || []);
 
-      const activeVisit = res.data.find(v => v.status !== "checked-out");
+      const activeVisit = res.data.find(v => !v.checkOutTime);
       setCurrentVisit(activeVisit || null);
     } catch (error) {
       console.error("Error fetching visitors", error);
@@ -61,7 +61,7 @@ const VisitorDashboard = () => {
             <p><strong>Host:</strong> {currentVisit.personToMeet}</p>
           </div>
 
-          {currentVisit.status === "approved" && (
+          {currentVisit.status === "approved" && !currentVisit.checkOutTime && (
             <div className="text-center">
               <p className="text-sm text-gray-500 mb-2">Scan at Gate</p>
               <QRCode value={currentVisit._id} size={100} />
@@ -76,13 +76,6 @@ const VisitorDashboard = () => {
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
         >
           Request Visit
-        </button>
-
-        <button
-          onClick={() => navigate("/checkout")}
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-        >
-          Check-out
         </button>
       </div>
 
