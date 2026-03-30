@@ -13,6 +13,7 @@ import VisitorDashboard from './app/features/dashboard/pages/VisitorDashboard'
 import CheckoutPage from './app/features/checkout/pages/CheckoutPage'
 import { Toaster } from "react-hot-toast";
 import ProfilePage from './app/features/auth/pages/ProfilePage'
+import RegisterPage from './app/features/auth/pages/RegisterPage'
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
       <Routes>
         {/* Public Route */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         {/* Protected Layout */}
         <Route

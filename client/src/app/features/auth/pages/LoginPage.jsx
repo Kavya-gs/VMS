@@ -55,6 +55,10 @@ const LoginPage = () => {
         onChange={(e) => setPassword(e.target.value)}
         />
         <button className="bg-blue-500 text-white px-4 py-2 rounded w-full">Submit</button>
+        <p className="text-sm mt-3 text-center">Don't have an account?{" "}
+        <span className="text-blue-500 cursor-pointer" onClick={() => navigate("/register")}>Register
+        </span>
+        </p>
       </form>
     </div>
   )
