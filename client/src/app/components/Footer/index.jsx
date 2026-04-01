@@ -21,7 +21,7 @@ const Footer = () => {
     { label: "Dashboard", path: "/dashboard" },
     { label: "Visitors", path: "/visitors" },
     { label: "Reports", path: "/reports" },
-    { label: "Settings", path: "/settings" },
+    { label: "Profile", path: "/profile" },
   ];
 
   const supportLinks = [

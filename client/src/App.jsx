@@ -14,6 +14,11 @@ import CheckoutPage from './app/features/checkout/pages/CheckoutPage'
 import { Toaster } from "react-hot-toast";
 import ProfilePage from './app/features/auth/pages/ProfilePage'
 import RegisterPage from './app/features/auth/pages/RegisterPage'
+import HelpPage from './app/features/misc/pages/HelpPage'
+import ContactPage from './app/features/misc/pages/ContactPage'
+import PrivacyPage from './app/features/misc/pages/PrivacyPage'
+import TermsPage from './app/features/misc/pages/TermsPage'
+import CookiesPage from './app/features/misc/pages/CookiesPage'
 
 function App() {
   return (
@@ -102,6 +107,46 @@ function App() {
             element={
               <RoleProtectedRoute allowedRoles={["visitor", "security", "admin"]}>
                 <ProfilePage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="help"
+            element={
+              <RoleProtectedRoute allowedRoles={["visitor", "security", "admin"]}>
+                <HelpPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="contact"
+            element={
+              <RoleProtectedRoute allowedRoles={["visitor", "security", "admin"]}>
+                <ContactPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="privacy"
+            element={
+              <RoleProtectedRoute allowedRoles={["visitor", "security", "admin"]}>
+                <PrivacyPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="terms"
+            element={
+              <RoleProtectedRoute allowedRoles={["visitor", "security", "admin"]}>
+                <TermsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="cookies"
+            element={
+              <RoleProtectedRoute allowedRoles={["visitor", "security", "admin"]}>
+                <CookiesPage />
               </RoleProtectedRoute>
             }
           />
