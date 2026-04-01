@@ -38,17 +38,6 @@ const filterVisitor = visitors.filter((visitor) => {
     fetchVisitors();
   }, []);
 
-  const handleCheckout = async (id) => {
-    try {
-      await API.put(`/visitors/checkout/${id}`);
-      alert("Visitor checked out");
-      fetchVisitors(); // refresh table
-    } catch (error) {
-      console.error(error);
-      alert("Checkout failed");
-    }
-  };
-
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Visitors</h1>
@@ -78,7 +67,6 @@ const filterVisitor = visitors.filter((visitor) => {
             <th className="p-3 border">Check-In</th>
             <th className="p-3 border">Check-Out</th>
             <th className="p-3 border">Status</th>
-            <th className="p-3 border">Action</th>
           </tr>
         </thead>
 
@@ -114,19 +102,6 @@ const filterVisitor = visitors.filter((visitor) => {
                 )}
               </td>
 
-              {/* ACTION */}
-              <td className="border p-2">
-                {!visitor.checkOutTime ? (
-                  <button
-                    onClick={() => handleCheckout(visitor._id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-                  >
-                    Checkout
-                  </button>
-                ) : (
-                  <span className="text-gray-400">—</span>
-                )}
-              </td>
             </tr>
           ))}
         </tbody>

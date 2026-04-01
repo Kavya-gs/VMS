@@ -4,9 +4,17 @@ import Visitor from "../models/visitor.model.js";
 export const createVisitor = async (req, res) => {
   try {
     console.log("REQ.USER", req.user);
+
+    // Security users can add visitors without waiting for admin approval
+    const defaultStatus =
+      req.user.role === "security" || req.user.role === "admin"
+        ? "approved"
+        : "pending";
+
     const visitor = await Visitor.create({
       ...req.body,
-      userId: req.user.id,  
+      userId: req.user.id,
+      status: defaultStatus,
     });
 
     res.status(201).json(visitor);
