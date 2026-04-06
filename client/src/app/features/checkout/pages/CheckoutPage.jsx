@@ -53,15 +53,17 @@ const fetchVisitors = async () => {
             )}
           </div>
 
-          {!v.checkOutTime ? (
+          {v.status === "approved" && !v.checkOutTime ? (
             <button
               onClick={() => handleCheckout(v._id)}
               className="bg-red-500 text-white px-3 py-1 rounded"
             >
               Checkout
             </button>
-          ) : (
+          ) : v.checkOutTime ? (
             <span className="text-green-600 font-medium">Completed</span>
+          ) : (
+            <span className="text-gray-500 font-medium">Not Approved</span>
           )}
         </div>
       ))}

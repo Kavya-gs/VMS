@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { visitorSchema } from "../../../../validations/visitorSchema";
@@ -9,10 +10,24 @@ const CheckInPage = () => {
     register,
     handleSubmit,
     formState: { errors },
-    reset
+    reset,
+    setValue
   } = useForm({
     resolver: yupResolver(visitorSchema)
   });
+
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    if (role === "visitor") {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (user) {
+        setValue("name", user.name);
+        setValue("email", user.email);
+      }
+    }
+  }, [setValue]);
+
+  const role = localStorage.getItem("role");
 
   const onSubmit = async (data) => {
     try {
@@ -40,6 +55,7 @@ const CheckInPage = () => {
             type="text"
             placeholder="Visitor Name"
             {...register("name")}
+            disabled={role === "visitor"}
             className="w-full border p-3 rounded"
           />
           <p className="text-red-500 text-sm">{errors.name?.message}</p>
@@ -51,6 +67,7 @@ const CheckInPage = () => {
             type="email"
             placeholder="Email"
             {...register("email")}
+            disabled={role === "visitor"}
             className="w-full border p-3 rounded"
           />
           <p className="text-red-500 text-sm">{errors.email?.message}</p>

@@ -7,6 +7,7 @@ import {
   getVisitorStats,
   rejectVisitor,
   getMyVisits,
+  getNotifications,
   getVisitorByDate
 } from "../controllers/visitor.controller.js";
 
@@ -31,6 +32,13 @@ router.get(
   authMiddleware,
   roleMiddleware("visitor"),
   getMyVisits
+);
+
+router.get(
+  "/notifications",
+  authMiddleware,
+  roleMiddleware("admin", "security", "visitor"),
+  getNotifications
 );
 
 router.get("/reports",

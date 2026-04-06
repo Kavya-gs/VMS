@@ -113,10 +113,12 @@ const VisitorDashboard = () => {
                     </span>
                   </td>
                   <td className="p-2 border">{visit.checkOutTime ? (
-                  <span className="text-green-600 font-medium">Yes</span>) : (
+                  <span className="text-green-600 font-medium">Yes</span>) : visit.status === "approved" ? (
                   <button onClick={() => handleCheckout(visit._id)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
                   Checkout
                   </button>
+                  ) : (
+                  <span className="text-gray-500">Pending Approval</span>
                   )}
                   </td>
                 </tr>

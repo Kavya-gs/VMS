@@ -22,6 +22,7 @@ const LoginPage = () => {
       const role = roleFromAPI.toLowerCase();
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", role);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
       
       if (role === "admin" || role === "security") {
         navigate("/dashboard");
@@ -29,7 +30,6 @@ const LoginPage = () => {
       else{
         navigate("/dashboard");
       }
-      localStorage.setItem("role", role.toLowerCase());
       
     } catch (error) {
       console.error("Error logging in", error);

@@ -41,12 +41,20 @@ export const checkoutVisitor = async (req, res) => {
 
     const visitor = await Visitor.findById(id);
 
+    if (!visitor) {
+      return res.status(404).json({ message: "Visitor not found" });
+    }
+
     if (
       visitor.userId.toString() !== req.user.id &&
       req.user.role !== "admin" &&
       req.user.role !== "security"
     ) {
       return res.status(403).json({ message: "Not allowed" });
+    }
+
+    if (visitor.status !== "approved") {
+      return res.status(400).json({ message: "Visitor must be approved before checkout." });
     }
 
     visitor.checkOutTime = new Date();
@@ -122,6 +130,39 @@ export const getMyVisits = async (req, res) => {
     res.json(visits);
   } catch (error) {
     res.status(500).json({ message: "Error fetching visits" });
+  }
+};
+
+export const getNotifications = async (req, res) => {
+  try {
+    const visits = await Visitor.find({ userId: req.user.id })
+      .sort({ updatedAt: -1 })
+      .limit(20);
+
+    const notifications = visits.map((visit) => {
+      let message = "Visitor status updated";
+      if (visit.status === "approved") message = "Your visitor request is approved.";
+      if (visit.status === "pending") message = "Your visitor request is pending approval.";
+      if (visit.status === "rejected") message = "Your visitor request is rejected.";
+      if (visit.status === "checked-in") message = "Visitor has checked in.";
+      if (visit.status === "checked-out") message = "Visitor has checked out.";
+
+      return {
+        id: visit._id,
+        name: visit.name,
+        purpose: visit.purpose,
+        personToMeet: visit.personToMeet,
+        status: visit.status,
+        message,
+        createdAt: visit.createdAt,
+        updatedAt: visit.updatedAt,
+      };
+    });
+
+    res.status(200).json(notifications);
+  } catch (error) {
+    console.error("Failed to fetch notifications", error);
+    res.status(500).json({ message: "Failed to fetch notifications" });
   }
 };
 

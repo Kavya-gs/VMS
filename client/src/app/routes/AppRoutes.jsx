@@ -5,6 +5,9 @@ import DashboardPage from "../features/dashboard/pages/DashboardPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import ProtectedRoute from "./ProtectedRoute";
 import VisitorDashboard from "../features/dashboard/pages/VisitorDashboard";
+import VisitorsPage from "../features/visitors/pages/VisitorsPage";
+import CheckInPage from "../features/visitors/pages/CheckInPage";
+import ApprovalsPage from "../features/approvals/pages/ApprovalsPage";
 
 const AppRoutes = () => {
   return (

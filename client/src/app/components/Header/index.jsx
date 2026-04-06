@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../../../assets/image.png";
 import {
@@ -9,7 +9,9 @@ import {
   CheckCircle,
   Assessment,
   ExitToApp,
+  Notifications as NotificationsIcon,
 } from "@mui/icons-material";
+import API from "../../../services/api";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -18,6 +20,10 @@ const Header = () => {
 
   const role = localStorage.getItem("role");
   const token = localStorage.getItem("token");
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState("");
 
   const navItems = [
     { label: "Dashboard", path: "/dashboard", icon: Dashboard, roles: ["admin", "security", "visitor"] },
@@ -29,6 +35,27 @@ const Header = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
+
+  const fetchNotifications = async () => {
+    if (!token) return;
+    setNotificationsLoading(true);
+    setNotificationsError("");
+
+    try {
+      const res = await API.get("/visitors/notifications");
+      setNotifications(res.data || []);
+    } catch (err) {
+      setNotificationsError("Failed to load notifications");
+      console.error("Notification fetch error", err);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [token]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
@@ -70,6 +97,51 @@ const Header = () => {
 
           {/* Right Side */}
           <div className="flex items-center gap-4">
+            <div className="relative">
+              <button
+                onClick={() => setNotificationsOpen((prev) => !prev)}
+                className="relative flex items-center gap-1 rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-100 smooth-transition"
+              >
+                <NotificationsIcon fontSize="small" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-80 max-h-96 overflow-auto rounded-lg bg-white shadow-lg border border-gray-200 z-50"
+                  onMouseLeave={() => setNotificationsOpen(false)}
+                >
+                  <div className="px-4 py-3 border-b font-semibold">Notifications</div>
+                  <div className="px-4 py-2">
+                    {notificationsLoading && <div>Loading...</div>}
+                    {notificationsError && <div className="text-red-600">{notificationsError}</div>}
+                    {!notificationsLoading && !notificationsError && notifications.length === 0 && (
+                      <div className="text-gray-600">No notifications</div>
+                    )}
+                    {!notificationsLoading && !notificationsError && notifications.length > 0 && (
+                      <ul className="space-y-2">
+                        {notifications.map((note) => (
+                          <li key={note.id} className="border rounded-lg p-2">
+                            <div className="font-medium">{note.message}</div>
+                            <div className="text-xs text-gray-500">
+                              {note.name} • {note.status}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {new Date(note.updatedAt || note.createdAt).toLocaleString()}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Desktop User Menu */}
             <div className="relative">
               <button
