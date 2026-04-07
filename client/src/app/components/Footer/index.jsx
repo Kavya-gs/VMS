@@ -36,20 +36,19 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="w-full border-t border-gray-200 bg-gray-900 text-white">
+    <footer className="w-full border-t border-slate-800 bg-slate-950 text-slate-100">
       {/* Main Footer Content */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Company Info */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg ">
-                <img src={logo} alt="logo" className="h-10 w-10" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 shadow-inner">
+                <img src={logo} alt="logo" className="h-10 w-10 rounded-xl" />
               </div>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              Streamline your visitor check-in process with our secure and
-              efficient platform.
+            <p className="text-sm leading-relaxed text-slate-400">
+              Streamline visitor access with a secure, polished check-in experience.
             </p>
             {/* Social Icons */}
             <div className="flex gap-3 pt-2">
@@ -64,7 +63,7 @@ const Footer = () => {
                   href={item.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-gray-800 text-gray-400 hover:bg-indigo-600 hover:text-white hover:transform hover:-translate-y-1 smooth-transition"
+                  className="inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-slate-900 text-slate-400 transition hover:bg-indigo-600 hover:text-white"
                 >
                   <item.Icon fontSize="small" />
                 </a>
@@ -74,7 +73,7 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div>
-            <h4 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-200">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
               Quick Links
             </h4>
             <ul className="space-y-2">
@@ -82,12 +81,12 @@ const Footer = () => {
                 <li key={link.path}>
                   <button
                     onClick={() => navigate(link.path)}
-                    className="group flex items-center gap-2 text-sm text-gray-400 hover:text-white smooth-transition"
+                    className="group flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
                   >
                     {link.label}
                     <ArrowForward
                       fontSize="small"
-                      className="transform translate-x-0 group-hover:translate-x-1 smooth-transition"
+                      className="transform transition duration-300 group-hover:translate-x-1"
                     />
                   </button>
                 </li>
@@ -97,7 +96,7 @@ const Footer = () => {
 
           {/* Support */}
           <div>
-            <h4 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-200">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
               Support
             </h4>
             <ul className="space-y-2">
@@ -105,12 +104,12 @@ const Footer = () => {
                 <li key={link.path}>
                   <button
                     onClick={() => navigate(link.path)}
-                    className="group flex items-center gap-2 text-sm text-gray-400 hover:text-white smooth-transition"
+                    className="group flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
                   >
                     {link.label}
                     <ArrowForward
                       fontSize="small"
-                      className="transform translate-x-0 group-hover:translate-x-1 smooth-transition"
+                      className="transform transition duration-300 group-hover:translate-x-1"
                     />
                   </button>
                 </li>
@@ -120,41 +119,39 @@ const Footer = () => {
 
           {/* Contact Info */}
           <div>
-            <h4 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-200">
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
               Contact Info
             </h4>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
-                <Phone className="h-5 w-5 flex-shrink-0 text-indigo-500 mt-0.5" />
+                <Phone className="h-5 w-5 flex-shrink-0 text-indigo-400 mt-0.5" />
                 <div>
-                  <p className="text-xs text-gray-500">Phone</p>
+                  <p className="text-xs text-slate-500">Phone</p>
                   <a
                     href="tel:+15551234567"
-                    className="text-sm text-gray-400 hover:text-white smooth-transition"
+                    className="text-sm text-slate-400 transition hover:text-white"
                   >
                     +91 6679366761
                   </a>
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <Email className="h-5 w-5 flex-shrink-0 text-indigo-500 mt-0.5" />
+                <Email className="h-5 w-5 flex-shrink-0 text-indigo-400 mt-0.5" />
                 <div>
-                  <p className="text-xs text-gray-500">Email</p>
+                  <p className="text-xs text-slate-500">Email</p>
                   <a
                     href="mailto:support@vms.com"
-                    className="text-sm text-gray-400 hover:text-white smooth-transition"
+                    className="text-sm text-slate-400 transition hover:text-white"
                   >
                     support@vms.com
                   </a>
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <LocationOn className="h-5 w-5 flex-shrink-0 text-indigo-500 mt-0.5" />
+                <LocationOn className="h-5 w-5 flex-shrink-0 text-indigo-400 mt-0.5" />
                 <div>
-                  <p className="text-xs text-gray-500">Location</p>
-                  <p className="text-sm text-gray-400">
-                    Udyog Vihar, Gurugram
-                  </p>
+                  <p className="text-xs text-slate-500">Location</p>
+                  <p className="text-sm text-slate-400">Udyog Vihar, Gurugram</p>
                 </div>
               </li>
             </ul>
@@ -162,19 +159,17 @@ const Footer = () => {
         </div>
 
         {/* Divider */}
-        <div className="my-8 sm:my-10 border-t border-gray-800"></div>
+        <div className="my-8 sm:my-10 border-t border-slate-800"></div>
 
         {/* Bottom Footer */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-400">
-            &copy; {currentYear} Visitor Management System. All rights reserved.
-          </p>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-400">
+          <p className="text-sm">&copy; {currentYear} Visitor Management System. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
             {footerLinks.map((link) => (
               <button
                 key={link.path}
                 onClick={() => navigate(link.path)}
-                className="text-xs sm:text-sm text-gray-400 hover:text-white smooth-transition"
+                className="text-xs sm:text-sm transition hover:text-white"
               >
                 {link.label}
               </button>
