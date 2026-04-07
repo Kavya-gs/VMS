@@ -36,21 +36,33 @@ const ReportPage = () => {
     }
   };
 
+  // useEffect(() => {
+  //   // Fix double API call 
+  //   if (hasFetched.current) return;
+  //   hasFetched.current = true;
+
+  //   fetchReports();
+
+  //   intervalRef.current = setInterval(() => {
+  //     fetchReports();
+  //   }, 5000);
+
+  //   return () => {
+  //     if (intervalRef.current) clearInterval(intervalRef.current);
+  //   };
+  // }, []);
+
+
   useEffect(() => {
-    // Fix double API call 
-    if (hasFetched.current) return;
-    hasFetched.current = true;
-
     fetchReports();
+  },[]);
 
-    intervalRef.current = setInterval(() => {
-      fetchReports();
-    }, 5000);
+  useEffect(() => {
+  if (startDate && endDate) {
+    fetchReports();
+  }
+}, [startDate, endDate]);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
 
   const handleFilter = () => {
     if (!startDate || !endDate) {
@@ -89,12 +101,15 @@ const ReportPage = () => {
   }
 
   const exportCSV = () => {
-    const headers = ["Name", "Email", "Purpose", "Status"];
+    const headers = ["S.No", "Name", "Email", "Purpose", "Check In Time", "Check Out Time", "Status"];
 
-    const rows = visitors.map((v) => [
+    const rows = visitors.map((v, index) => [
+      index + 1,
       v.name,
       v.email,
       v.purpose,
+      v.checkInTime ? new Date(v.checkInTime).toLocaleString() : "-",
+      v.checkOutTime ? new Date(v.checkOutTime).toLocaleString() : "-",
       v.status,
     ]);
 
@@ -113,16 +128,25 @@ const ReportPage = () => {
 
     doc.text("Visitor Report", 14, 10);
 
-    const tableColumn = ["Name", "Email", "Purpose", "Status"];
+    const tableColumn = ["S.No", "Name", "Email", "Purpose", "Check In Time", "Check Out Time", "Status"];
     const tableRows = [];
 
-    visitors.forEach((v) => {
-      tableRows.push([v.name, v.email, v.purpose, v.status]);
+    visitors.forEach((v, index) => {
+      tableRows.push([
+        index + 1,
+        v.name,
+        v.email,
+        v.purpose,
+        v.checkInTime ? new Date(v.checkInTime).toLocaleString() : "-",
+        v.checkOutTime ? new Date(v.checkOutTime).toLocaleString() : "-",
+        v.status
+      ]);
     });
 
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
+      startY: 20,
     });
 
     doc.save("visitors_report.pdf");
@@ -211,32 +235,26 @@ const ReportPage = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-gray-100 text-left">
+                  <th className="p-3">S.No</th>
                   <th className="p-3">Name</th>
                   <th className="p-3">Email</th>
                   <th className="p-3">Purpose</th>
                   <th className="p-3">Status</th>
+                  <th className="p-3">Check In</th>
+                  <th className="p-3">Check Out</th>
                 </tr>
               </thead>
 
               <tbody>
-                {visitors.map((v) => (
+                {visitors.map((v, index) => (
                   <tr key={v._id} className="border-t hover:bg-gray-50">
+                    <td className="p-3">{index + 1}</td>
                     <td className="p-3">{v.name}</td>
                     <td className="p-3">{v.email}</td>
                     <td className="p-3">{v.purpose}</td>
-                    <td className="p-3">
-                      <span
-                        className={`px-2 py-1 rounded text-sm ${
-                          v.status === "approved"
-                            ? "bg-green-100 text-green-600"
-                            : v.status === "pending"
-                            ? "bg-yellow-100 text-yellow-600"
-                            : "bg-red-100 text-red-600"
-                        }`}
-                      >
-                        {v.status}
-                      </span>
-                    </td>
+                    <td className="p-3">{v.checkInTime ? new Date(v.checkInTime).toLocaleString(): "—"}</td>
+                    <td className="p-3">{v.checkOutTime ? new Date(v.checkOutTime).toLocaleString(): "—"}</td>
+                    <td className="p-3">{v.status}</td>
                   </tr>
                 ))}
               </tbody>

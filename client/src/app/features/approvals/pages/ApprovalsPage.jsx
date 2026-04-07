@@ -55,6 +55,8 @@ const ApprovalsPage = () => {
             <th className='p-3 text-left'>Name</th>
             <th className='p-3 text-left'>Purpose</th>
             <th className='p-3 text-left'>Host</th>
+            <th className='p-3 text-left'>Expected In</th>
+            <th className='p-3 text-left'>Expected Out</th>
             <th className='p-3 text-left'>Action</th>
           </tr>
         </thead>
@@ -65,6 +67,8 @@ const ApprovalsPage = () => {
               <td className="p-3">{visitor.name}</td>
               <td className="p-3">{visitor.purpose}</td>
               <td className="p-3">{visitor.personToMeet}</td>
+              <td className="p-3">{visitor.expectedCheckIn ? new Date(visitor.expectedCheckIn).toLocaleString() : "-"}</td>
+              <td className="p-3">{visitor.expectedCheckOut ? new Date(visitor.expectedCheckOut).toLocaleString() : "-"}</td>
               <td className="p-3 flex gap-2">
                 <button
                   onClick={() => approveVisitor(visitor._id)}
@@ -83,7 +87,7 @@ const ApprovalsPage = () => {
           ))
         ) : (
           <tr>
-            <td colSpan="4" className="text-center p-4">
+            <td colSpan="6" className="text-center p-4">
               No pending approvals
             </td>
           </tr>

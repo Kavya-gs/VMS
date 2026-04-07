@@ -8,6 +8,7 @@ const VisitorDashboard = () => {
   const [visits, setVisits] = useState([]);
   const [currentVisit, setCurrentVisit] = useState(null);
   const [checkingOutId, setCheckingOutId] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const location = useLocation();
 
   useEffect(() => {
@@ -43,6 +44,25 @@ const VisitorDashboard = () => {
     }
   }
 
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatCountdown = (milliseconds) => {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours ? `${hours}h ` : ""}${minutes}m ${seconds}s`;
+  };
+
+  const qrExpiresAt = currentVisit?.qrTokenExpiry ? new Date(currentVisit.qrTokenExpiry) : null;
+  const expectedCheckInAt = currentVisit?.expectedCheckIn ? new Date(currentVisit.expectedCheckIn) : null;
+  const isQrNotActiveYet = expectedCheckInAt && currentTime < expectedCheckInAt;
+  const isQrExpired = qrExpiresAt && currentTime > qrExpiresAt;
+  const isQrActive = qrExpiresAt && currentTime >= (expectedCheckInAt || new Date(0)) && currentTime <= qrExpiresAt;
+
   const navigate = useNavigate();
 
   return (
@@ -71,13 +91,33 @@ const VisitorDashboard = () => {
           </div>
 
           {currentVisit.status === "approved" && !currentVisit.checkOutTime && (
-            <div className="text-center">
-              <p className="text-sm text-gray-500 mb-2">Scan at Gate</p>
+            <div className="text-center flex flex-col items-center">
+              <p className="text-sm text-slate-700 mb-4 font-medium">Scan at Gate</p>
               {currentVisit.qrToken ? (
                 <>
-                  <QRCode value={currentVisit.qrToken} size={100} />
-                  <p className="text-xs text-gray-400 mt-2">
-                    Expires: {new Date(currentVisit.qrTokenExpiry).toLocaleDateString()}
+                  <div className="mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200 relative">
+                    <QRCode value={currentVisit.qrToken} size={120} />
+                    {/* Overlay */}
+                    {!isQrActive && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-black/60 text-white px-3 py-1 rounded text-sm">
+                      {isQrNotActiveYet ? "Not Active Yet" : "Expired"}
+                      </div>
+                    </div>
+                  )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Expected check-in: {expectedCheckInAt ? expectedCheckInAt.toLocaleString() : "N/A"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Expected checkout: {currentVisit.expectedCheckOut ? new Date(currentVisit.expectedCheckOut).toLocaleString() : "N/A"}
+                  </p>
+                  <p className={`text-sm mt-3 font-medium ${isQrExpired ? "text-rose-600" : isQrNotActiveYet ? "text-yellow-600" : "text-emerald-600"}`}>
+                    {isQrNotActiveYet
+                      ? `Activates in ${formatCountdown(expectedCheckInAt - currentTime)}`
+                      : isQrExpired
+                      ? `Expired ${formatCountdown(currentTime - qrExpiresAt)} ago`
+                      : `Expires in ${formatCountdown(qrExpiresAt - currentTime)}`}
                   </p>
                 </>
               ) : (
@@ -130,17 +170,33 @@ const VisitorDashboard = () => {
                       {visit.status}
                     </span>
                   </td>
-                  <td className="p-2 border">{visit.checkOutTime ? (
-                  <span className="text-green-600 font-medium">Yes</span>) : visit.status === "approved" ? (
-                  <button 
-                    onClick={() => handleCheckout(visit._id)} 
-                    disabled={checkingOutId === visit._id}
-                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-3 py-1 rounded font-semibold transition">
-                    {checkingOutId === visit._id ? "Checking out..." : "Checkout"}
-                  </button>
-                  ) : (
-                  <span className="text-gray-500">Pending Approval</span>
-                  )}
+                  <td className="p-2 border">
+                    {visit.checkOutTime ? (
+                      <span className="text-green-600 font-medium">Yes</span>
+                    ) : visit.status === "approved" ? (
+                      (() => {
+                        const expired = visit.qrTokenExpiry && new Date() > new Date(visit.qrTokenExpiry);
+                        const notActive = visit.expectedCheckIn && new Date() < new Date(visit.expectedCheckIn);
+                        return (
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => handleCheckout(visit._id)}
+                              disabled={checkingOutId === visit._id || expired || notActive}
+                              className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-3 py-1 rounded font-semibold transition"
+                            >
+                              {checkingOutId === visit._id ? "Checking out..." : "Checkout"}
+                            </button>
+                            {(expired || notActive) && (
+                              <p className="text-xs text-gray-500">
+                                {expired ? "QR expired" : "Not active yet"}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <span className="text-gray-500">Pending Approval</span>
+                    )}
                   </td>
                 </tr>
               ))

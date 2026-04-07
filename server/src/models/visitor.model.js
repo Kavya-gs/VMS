@@ -20,12 +20,24 @@ const visitorSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        expectedCheckIn: {
+            type: Date,
+            required: true,
+        },
+        expectedCheckOut: {
+            type: Date,
+            required: true,
+        },
         checkInTime: {
             type: Date,
             default: Date.now,
         },
         checkOutTime: {
             type: Date,
+        },
+        expiryNotified: {
+            type: Boolean,
+            default: false,
         },
         userId: {
             type: mongoose.Schema.Types.ObjectId,

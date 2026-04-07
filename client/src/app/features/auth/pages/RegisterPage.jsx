@@ -13,12 +13,14 @@ const RegisterPage = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm({
+    mode: "onChange",
+    reValidateMode: "onChange",
     resolver: yupResolver(registerSchema),
   });
 
-  const handleRegister = async(formData) => {
+  const handleRegister = async (formData) => {
     setLoading(true);
     try {
       const { confirmPassword, ...dataToSend } = formData;
@@ -48,9 +50,10 @@ const RegisterPage = () => {
             placeholder="Full Name"
             {...register("name")}
             disabled={loading}
-            className="border p-2 w-full rounded focus:outline-none focus:border-green-500"
+            aria-invalid={errors.name ? "true" : "false"}
+            className={`w-full rounded border p-2 focus:outline-none transition ${errors.name ? "border-rose-500 focus:border-rose-500 bg-rose-50" : "border-slate-300 focus:border-green-500 bg-white"}`}
           />
-          {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+          {errors.name && <p className="text-rose-600 text-sm mt-1">{errors.name.message}</p>}
         </div>
 
         <div className="mb-4">
@@ -59,9 +62,10 @@ const RegisterPage = () => {
             placeholder="Email"
             {...register("email")}
             disabled={loading}
-            className="border p-2 w-full rounded focus:outline-none focus:border-green-500"
+            aria-invalid={errors.email ? "true" : "false"}
+            className={`w-full rounded border p-2 focus:outline-none transition ${errors.email ? "border-rose-500 focus:border-rose-500 bg-rose-50" : "border-slate-300 focus:border-green-500 bg-white"}`}
           />
-          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+          {errors.email && <p className="text-rose-600 text-sm mt-1">{errors.email.message}</p>}
         </div>
 
         <div className="mb-4">
@@ -70,9 +74,10 @@ const RegisterPage = () => {
             placeholder="Password (8+ chars, uppercase, lowercase, number)"
             {...register("password")}
             disabled={loading}
-            className="border p-2 w-full rounded focus:outline-none focus:border-green-500"
+            aria-invalid={errors.password ? "true" : "false"}
+            className={`w-full rounded border p-2 focus:outline-none transition ${errors.password ? "border-rose-500 focus:border-rose-500 bg-rose-50" : "border-slate-300 focus:border-green-500 bg-white"}`}
           />
-          {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+          {errors.password && <p className="text-rose-600 text-sm mt-1">{errors.password.message}</p>}
         </div>
 
         <div className="mb-4">
@@ -81,9 +86,10 @@ const RegisterPage = () => {
             placeholder="Confirm Password"
             {...register("confirmPassword")}
             disabled={loading}
-            className="border p-2 w-full rounded focus:outline-none focus:border-green-500"
+            aria-invalid={errors.confirmPassword ? "true" : "false"}
+            className={`w-full rounded border p-2 focus:outline-none transition ${errors.confirmPassword ? "border-rose-500 focus:border-rose-500 bg-rose-50" : "border-slate-300 focus:border-green-500 bg-white"}`}
           />
-          {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>}
+          {errors.confirmPassword && <p className="text-rose-600 text-sm mt-1">{errors.confirmPassword.message}</p>}
         </div>
 
         <button 

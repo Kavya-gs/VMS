@@ -13,12 +13,14 @@ const LoginPage = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm({
+    mode: "onChange",
+    reValidateMode: "onChange",
     resolver: yupResolver(loginSchema),
   });
 
-  const handleLogin = async(formData) => {
+  const handleLogin = async (formData) => {
     setLoading(true);
     try {
       const res = await API.post("/auth/login", formData);
@@ -58,9 +60,10 @@ const LoginPage = () => {
             placeholder="Email" 
             {...register("email")}
             disabled={loading}
-            className="border p-2 w-full rounded focus:outline-none focus:border-blue-500"
+            aria-invalid={errors.email ? "true" : "false"}
+            className={`w-full rounded border p-2 focus:outline-none transition ${errors.email ? "border-rose-500 focus:border-rose-500 bg-rose-50" : "border-slate-300 focus:border-indigo-500 bg-white"}`}
           />
-          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+          {errors.email && <p className="text-rose-600 text-sm mt-1">{errors.email.message}</p>}
         </div>
         
         <div className="mb-4">
@@ -69,9 +72,10 @@ const LoginPage = () => {
             placeholder="Password"
             {...register("password")}
             disabled={loading}
-            className="border p-2 w-full rounded focus:outline-none focus:border-blue-500"
+            aria-invalid={errors.password ? "true" : "false"}
+            className={`w-full rounded border p-2 focus:outline-none transition ${errors.password ? "border-rose-500 focus:border-rose-500 bg-rose-50" : "border-slate-300 focus:border-indigo-500 bg-white"}`}
           />
-          {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+          {errors.password && <p className="text-rose-600 text-sm mt-1">{errors.password.message}</p>}
         </div>
         
         <button 

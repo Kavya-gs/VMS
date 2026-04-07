@@ -13,6 +13,7 @@ const CheckoutPage = () => {
   }, []);
 
   const role = localStorage.getItem("role");
+  const isPrivileged = role === "admin" || role === "security";
 
   const navigate = useNavigate();
 
@@ -66,26 +67,43 @@ const fetchVisitors = async () => {
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Pending Checkout</h2>
             {visitors.filter(v => v.status === "approved" && !v.checkOutTime).length > 0 ? (
-              visitors.filter(v => v.status === "approved" && !v.checkOutTime).map((v) => (
-                <div key={v._id} className="border bg-white p-4 mb-3 flex justify-between rounded-lg hover:shadow-md transition">
-                  <div>
-                    <p className="font-semibold">{v.name}</p>
-                    <p className="text-sm text-gray-600">Purpose: {v.purpose}</p>
-                    <p className="text-sm text-gray-600">Host: {v.personToMeet}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Checked in: {new Date(v.checkInTime).toLocaleDateString()}
-                    </p>
-                  </div>
+              visitors.filter(v => v.status === "approved" && !v.checkOutTime).map((v) => {
+                const expired = v.qrTokenExpiry && new Date() > new Date(v.qrTokenExpiry);
+                const notActive = v.expectedCheckIn && new Date() < new Date(v.expectedCheckIn);
 
-                  <button
-                    onClick={() => handleCheckout(v._id)}
-                    disabled={checkingOutId === v._id}
-                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-4 py-2 rounded font-semibold transition h-fit"
-                  >
-                    {checkingOutId === v._id ? "Checking out..." : "Checkout"}
-                  </button>
-                </div>
-              ))
+                return (
+                  <div key={v._id} className="border bg-white p-4 mb-3 rounded-lg hover:shadow-md transition">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-semibold">{v.name}</p>
+                        <p className="text-sm text-gray-600">Purpose: {v.purpose}</p>
+                        <p className="text-sm text-gray-600">Host: {v.personToMeet}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Requested check-in: {new Date(v.expectedCheckIn).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Requested checkout: {new Date(v.expectedCheckOut).toLocaleString()}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col items-start gap-2 sm:items-end">
+                        <button
+                          onClick={() => handleCheckout(v._id)}
+                          disabled={checkingOutId === v._id ||(!isPrivileged && (expired || notActive))}
+                          className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-4 py-2 rounded font-semibold transition h-fit"
+                        >
+                          {checkingOutId === v._id ? "Checking out..." : "Checkout"}
+                        </button>
+                        {(expired || notActive) && (
+                          <p className="text-xs text-gray-500">
+                            {expired ? "QR expired — checkout blocked" : "QR not active yet"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             ) : (
               <p className="text-gray-500 italic">No pending checkouts</p>
             )}
