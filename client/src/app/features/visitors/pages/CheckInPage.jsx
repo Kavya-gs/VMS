@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
+import toast from "react-hot-toast";
 import { visitorSchema } from "../../../../validations/visitorSchema";
 import API from "../../../../services/api";
 
 const CheckInPage = () => {
+  const [loading, setLoading] = useState(false);
 
   const {
     register,
@@ -30,14 +32,18 @@ const CheckInPage = () => {
   const role = localStorage.getItem("role");
 
   const onSubmit = async (data) => {
+    setLoading(true);
     try {
       await API.post("/visitors/checkin", data);
-      alert("Visitor Checked In Successfully");
+      toast.success("Visitor Checked In Successfully!");
       reset();
 
     } catch (error) {
       console.error(error);
-      alert("Error checking in visitor");
+      const errorMessage = error.response?.data?.message || "Error checking in visitor";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,9 +105,10 @@ const CheckInPage = () => {
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-3 rounded hover:bg-blue-700"
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white p-3 rounded font-semibold transition"
         >
-          Check In Visitor
+          {loading ? "Checking In..." : "Check In Visitor"}
         </button>
       </form>
     </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import toast from 'react-hot-toast';
 import API from '../../../../services/api';
 
 const ApprovalsPage = () => {
@@ -16,26 +17,31 @@ const ApprovalsPage = () => {
       setVisitors(pendingVisitors);
     } catch (error) {
       console.error(error);
+      toast.error("Failed to fetch visitors");
     }
   }
 
   const approveVisitor = async(id) => {
     try {
       await API.put(`/visitors/approve/${id}`);
-      alert("Visitor approved");
+      toast.success("Visitor approved!");
       fetchVisitors();
     } catch (error) {
       console.error(error);
+      const errorMessage = error.response?.data?.message || "Failed to approve visitor";
+      toast.error(errorMessage);
     }
   }
 
   const rejectVisitor = async(id) => {
     try {
       await API.put(`/visitors/reject/${id}`);
-      alert("Visitor rejected");
+      toast.success("Visitor rejected!");
       fetchVisitors();
     } catch (error) {
       console.error(error);
+      const errorMessage = error.response?.data?.message || "Failed to reject visitor";
+      toast.error(errorMessage);
     }
   }
 

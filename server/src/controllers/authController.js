@@ -19,13 +19,16 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Validate role - only allow visitor, admin, security
+    const validRoles = ["visitor", "admin", "security"];
+    const userRole = role && validRoles.includes(role) ? role : "visitor";
 
     // Create user
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
-      role: "visitor", // default role
+      role: userRole, // use provided role or default to visitor
     });
 
     const userObj = user.toObject();

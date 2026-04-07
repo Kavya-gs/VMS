@@ -1,4 +1,5 @@
 import Visitor from "../models/visitor.model.js";
+import jwt from "jsonwebtoken";
 
 // create a visitor
 export const createVisitor = async (req, res) => {
@@ -57,7 +58,13 @@ export const checkoutVisitor = async (req, res) => {
       return res.status(400).json({ message: "Visitor must be approved before checkout." });
     }
 
+    // Validate QR token expiry
+    if (visitor.qrTokenExpiry && new Date() > visitor.qrTokenExpiry) {
+      return res.status(400).json({ message: "QR code expired. Please request a new approval." });
+    }
+
     visitor.checkOutTime = new Date();
+    visitor.status = "checked-out";
 
     await visitor.save();
 
@@ -104,22 +111,59 @@ export const getVisitorStats = async(req, res) => {
 
 // for approvals page -> when user status is approved
 export const approveVisitor = async(req, res) => {
-  const visitor = await Visitor.findByIdAndUpdate(
-    req.params.id,
-    {status: "approved"},
-    {new: true}
-  )
-  res.json(visitor);
+  try {
+    const visitor = await Visitor.findById(req.params.id);
+    
+    if (!visitor) {
+      return res.status(404).json({ message: "Visitor not found" });
+    }
+
+    // Generate QR token valid for 24 hours
+    const qrToken = jwt.sign(
+      { visitorId: visitor._id, type: "qr" },
+      "qr-secret-key",
+      { expiresIn: "24h" }
+    );
+
+    const qrTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const updatedVisitor = await Visitor.findByIdAndUpdate(
+      req.params.id,
+      { 
+        status: "approved",
+        qrToken: qrToken,
+        qrTokenExpiry: qrTokenExpiry
+      },
+      { returnDocument: "after" }
+    );
+    
+    res.json(updatedVisitor);
+  } catch (error) {
+    console.error("Approval Error:", error);
+    res.status(500).json({ message: "Error approving visitor" });
+  }
 };
 
 //when user status is rejected
 export const rejectVisitor = async(req, res) => {
-  const visitor = await Visitor.findByIdAndUpdate(
-    req.params.id,
-    {status: "rejected"},
-    {new: true}
-  )
-  res.json(visitor);
+  try {
+    const visitor = await Visitor.findById(req.params.id);
+    
+    if (!visitor) {
+      return res.status(404).json({ message: "Visitor not found" });
+    }
+
+    const updatedVisitor = await Visitor.findByIdAndUpdate(
+      req.params.id,
+      { status: "rejected" },
+      { returnDocument: "after" }
+    );
+    
+    res.json(updatedVisitor);
+  } catch (error) {
+    console.error("Rejection Error:", error);
+    res.status(500).json({ message: "Error rejecting visitor" });
+  }
 }
 
 export const getMyVisits = async (req, res) => {

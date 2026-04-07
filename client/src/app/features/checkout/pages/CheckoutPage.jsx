@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import API from "../../../../services/api";
 import { useNavigate } from "react-router-dom";
 
 const CheckoutPage = () => {
   const [visitors, setVisitors] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [checkingOutId, setCheckingOutId] = useState(null);
 
   useEffect(() => {
     fetchVisitors();
@@ -15,58 +18,103 @@ const CheckoutPage = () => {
 
 const fetchVisitors = async () => {
   try {
+    setLoading(true);
     const endpoint =
       role === "visitor" ? "/visitors/my-visits" : "/visitors";
       
     const res = await API.get(endpoint);
-    setVisitors(res.data);
+    // For visitors: show all their visits; for admin/security: show only approved & not checked out
+    const filtered = role === "visitor" 
+      ? res.data 
+      : res.data.filter(v => v.status === "approved" && !v.checkOutTime);
+    setVisitors(filtered);
   } catch (error) {
     console.error(error);
+    toast.error("Failed to fetch visitors");
+  } finally {
+    setLoading(false);
   }
 };
 
   const handleCheckout = async (id) => {
+    setCheckingOutId(id);
     try {
       await API.put(`/visitors/checkout/${id}`);
+      toast.success("Checkout successful!");
       fetchVisitors(); 
       navigate("/dashboard");
     } catch (error) {
       console.error("Checkout failed", error);
+      const errorMessage = error.response?.data?.message || "Checkout failed";
+      toast.error(errorMessage);
+    } finally {
+      setCheckingOutId(null);
     }
   };
 
   return (
     <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">Checkout</h1>
+      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
 
-      {visitors.map((v) => (
-        <div key={v._id} className="border p-3 mb-2 flex justify-between">
-          <div>
-            <p>{v.name}</p>
-            <p className="text-sm text-gray-500">{v.purpose}</p>
-            {v.checkOutTime && (
-              <p className="text-sm text-green-600 mt-1">
-                Checked out on:{" "}
-                {new Date(v.checkOutTime).toLocaleDateString()} at{" "}
-                {new Date(v.checkOutTime).toLocaleTimeString()}
-              </p>
+      {loading ? (
+        <p className="text-center text-gray-500">Loading...</p>
+      ) : visitors.length === 0 ? (
+        <p className="text-center text-gray-500">No visits found</p>
+      ) : (
+        <>
+          {/* Pending Checkouts */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Pending Checkout</h2>
+            {visitors.filter(v => v.status === "approved" && !v.checkOutTime).length > 0 ? (
+              visitors.filter(v => v.status === "approved" && !v.checkOutTime).map((v) => (
+                <div key={v._id} className="border bg-white p-4 mb-3 flex justify-between rounded-lg hover:shadow-md transition">
+                  <div>
+                    <p className="font-semibold">{v.name}</p>
+                    <p className="text-sm text-gray-600">Purpose: {v.purpose}</p>
+                    <p className="text-sm text-gray-600">Host: {v.personToMeet}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Checked in: {new Date(v.checkInTime).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => handleCheckout(v._id)}
+                    disabled={checkingOutId === v._id}
+                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-4 py-2 rounded font-semibold transition h-fit"
+                  >
+                    {checkingOutId === v._id ? "Checking out..." : "Checkout"}
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 italic">No pending checkouts</p>
             )}
           </div>
 
-          {v.status === "approved" && !v.checkOutTime ? (
-            <button
-              onClick={() => handleCheckout(v._id)}
-              className="bg-red-500 text-white px-3 py-1 rounded"
-            >
-              Checkout
-            </button>
-          ) : v.checkOutTime ? (
-            <span className="text-green-600 font-medium">Completed</span>
-          ) : (
-            <span className="text-gray-500 font-medium">Not Approved</span>
-          )}
-        </div>
-      ))}
+          {/* Checkout History */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Checkout History</h2>
+            {visitors.filter(v => v.checkOutTime).length > 0 ? (
+              <div className="space-y-2">
+                {visitors.filter(v => v.checkOutTime).map((v) => (
+                  <div key={v._id} className="border border-green-200 bg-green-50 p-3 rounded flex justify-between">
+                    <div>
+                      <p className="font-semibold">{v.name}</p>
+                      <p className="text-sm text-gray-600">{v.purpose}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Checked out: {new Date(v.checkOutTime).toLocaleDateString()} at {new Date(v.checkOutTime).toLocaleTimeString()}
+                      </p>
+                    </div>
+                    <span className="text-green-600 font-medium h-fit">✓ Completed</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No checkout history</p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

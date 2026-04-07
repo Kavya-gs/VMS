@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import API from "../../../../services/api";
 import QRCode from "react-qr-code";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -6,6 +7,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 const VisitorDashboard = () => {
   const [visits, setVisits] = useState([]);
   const [currentVisit, setCurrentVisit] = useState(null);
+  const [checkingOutId, setCheckingOutId] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -22,15 +24,22 @@ const VisitorDashboard = () => {
       setCurrentVisit(activeVisit || null);
     } catch (error) {
       console.error("Error fetching visitors", error);
+      toast.error("Failed to fetch your visits");
     }
   };
 
   const handleCheckout = async(id) => {
+    setCheckingOutId(id);
     try {
       const res = await API.put(`/visitors/checkout/${id}`);
+      toast.success("Checkout successful!");
       fetchVisitors();
     } catch (error) {
-      console.error("Error fetching", error);
+      console.error("Error checkout", error);
+      const errorMessage = error.response?.data?.message || "Checkout failed";
+      toast.error(errorMessage);
+    } finally {
+      setCheckingOutId(null);
     }
   }
 
@@ -64,7 +73,16 @@ const VisitorDashboard = () => {
           {currentVisit.status === "approved" && !currentVisit.checkOutTime && (
             <div className="text-center">
               <p className="text-sm text-gray-500 mb-2">Scan at Gate</p>
-              <QRCode value={currentVisit._id} size={100} />
+              {currentVisit.qrToken ? (
+                <>
+                  <QRCode value={currentVisit.qrToken} size={100} />
+                  <p className="text-xs text-gray-400 mt-2">
+                    Expires: {new Date(currentVisit.qrTokenExpiry).toLocaleDateString()}
+                  </p>
+                </>
+              ) : (
+                <p className="text-red-500 text-sm">QR code generating...</p>
+              )}
             </div>
           )}
         </div>
@@ -114,8 +132,11 @@ const VisitorDashboard = () => {
                   </td>
                   <td className="p-2 border">{visit.checkOutTime ? (
                   <span className="text-green-600 font-medium">Yes</span>) : visit.status === "approved" ? (
-                  <button onClick={() => handleCheckout(visit._id)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
-                  Checkout
+                  <button 
+                    onClick={() => handleCheckout(visit._id)} 
+                    disabled={checkingOutId === visit._id}
+                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-3 py-1 rounded font-semibold transition">
+                    {checkingOutId === visit._id ? "Checking out..." : "Checkout"}
                   </button>
                   ) : (
                   <span className="text-gray-500">Pending Approval</span>

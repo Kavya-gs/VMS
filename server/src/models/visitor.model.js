@@ -35,6 +35,14 @@ const visitorSchema = new mongoose.Schema(
             type: String,
             enum: ["pending", "approved", "rejected", "checked-in", "checked-out"],
             default: "pending",
+        },
+        qrToken: {
+            type: String,
+            default: null,
+        },
+        qrTokenExpiry: {
+            type: Date,
+            default: null,
         }
     },
     {timestamps: true}

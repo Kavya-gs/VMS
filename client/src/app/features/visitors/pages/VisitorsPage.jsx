@@ -27,8 +27,7 @@ const filterVisitor = visitors.filter((visitor) => {
   const fetchVisitors = async () => {
   try {
     const res = await API.get("/visitors");
-    const Resvisitors = res.data.filter((visitor) => visitor.status === "approved");
-    setVisitors(Resvisitors);
+    setVisitors(res.data);
   } catch (error) {
     console.error(error);
   }
