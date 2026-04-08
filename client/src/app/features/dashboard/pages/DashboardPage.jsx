@@ -24,8 +24,15 @@ const DashboardPage = () => {
   if (role === "admin" || role === "security") {
     fetchVisitors();
     fetchStats();
+
+    const interval = setInterval(() => {
+      fetchVisitors();
+      fetchStats();
+    }, 5000); 
+
+    return () => clearInterval(interval);
   }
-}, []);
+}, [role]);
 
   const fetchVisitors = async () => {
     try {
@@ -38,10 +45,8 @@ const DashboardPage = () => {
 
   const fetchStats = async () => {
   try {
-    if (role === "admin") {
       const res = await API.get("/visitors/stats");
       setStats(res.data);
-    }
   } catch (error) {
     console.error(error);
   }

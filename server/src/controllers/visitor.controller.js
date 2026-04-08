@@ -104,60 +104,72 @@ const getSecurityEmails = async () => {
   return users.map((user) => user.email).filter(Boolean);
 };
 
-// const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
-//   const html = `
-//     <div style="font-family: Arial, sans-serif; color: #111;">
-//       <h2>Visitor Approved</h2>
-//       <p>Your visitor request for <strong>${visitor.name}</strong> has been approved.</p>
-//       <p><strong>Purpose:</strong> ${visitor.purpose}</p>
-//       <p><strong>Host:</strong> ${visitor.personToMeet}</p>
-//       <p><strong>Expected check-in:</strong> ${visitor.expectedCheckIn ? new Date(visitor.expectedCheckIn).toLocaleString() : "N/A"}</p>
-//       <p><strong>Expected checkout:</strong> ${visitor.expectedCheckOut ? new Date(visitor.expectedCheckOut).toLocaleString() : "N/A"}</p>
-//       ${qrDataUri ? `<p><strong>QR Code:</strong></p><img src="${qrDataUri}" alt="QR code" style="max-width: 300px;"/>` : "<p>Your QR code is available in the app.</p>"}
-//       <p>Present this QR code at the gate when checking in.</p>
-//     </div>
-//   `;
-
-//   await sendEmail(visitor.email, "Visitor Approved - QR Code Attached", html);
-// };
-
 const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
-  let attachments = [];
-  let qrImgTag = "<p>Your QR code is available in the app.</p>";
+  try {
+    console.log("Approval email triggered for:", visitor.email);
 
-  if (qrDataUri) {
-    const base64Data = qrDataUri.split("base64,")[1];
 
-    attachments.push({
-      filename: "qrcode.png",
-      content: base64Data,
-      encoding: "base64",
-      cid: "qrcode",
-    });
+    if (!visitor.email) {
+      console.log(" No email found for visitor");
+      return;
+    }
 
-    qrImgTag = `<p><strong>QR Code:</strong></p>
-                <img src="cid:qrcode" style="max-width: 300px;" />`;
+    let attachments = [];
+    let qrImgTag = "<p>Your QR code is available in the app.</p>";
+
+    if (qrDataUri) {
+      try {
+        const base64Data = qrDataUri.split("base64,")[1];
+
+        attachments.push({
+          filename: "qrcode.png",
+          content: base64Data, 
+          encoding: "base64",
+          cid: "qrcode",
+        });
+
+        qrImgTag = `
+          <p><strong>QR Code:</strong></p>
+          <img src="cid:qrcode" style="max-width: 300px;" />
+        `;
+      } catch (err) {
+        console.error("QR attachment failed:", err);
+      }
+    }
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; color: #111;">
+        <h2>Visitor Approved</h2>
+        <p>Your visitor request for <strong>${visitor.name}</strong> has been approved.</p>
+        <p><strong>Purpose:</strong> ${visitor.purpose}</p>
+        <p><strong>Host:</strong> ${visitor.personToMeet}</p>
+        <p><strong>Expected check-in:</strong> ${
+          visitor.expectedCheckIn
+            ? new Date(visitor.expectedCheckIn).toLocaleString()
+            : "N/A"
+        }</p>
+        <p><strong>Expected checkout:</strong> ${
+          visitor.expectedCheckOut
+            ? new Date(visitor.expectedCheckOut).toLocaleString()
+            : "N/A"
+        }</p>
+        ${qrImgTag}
+        <p>Present this QR code at the gate when checking in.</p>
+      </div>
+    `;
+
+    await sendEmail(
+      visitor.email,
+      "Visitor Approved - QR Code",
+      html,
+      attachments
+    );
+
+    console.log("Approval email sent successfully");
+
+  } catch (error) {
+    console.error(" Approval email failed:", error);
   }
-
-  const html = `
-    <div style="font-family: Arial, sans-serif; color: #111;">
-      <h2>Visitor Approved</h2>
-      <p>Your visitor request for <strong>${visitor.name}</strong> has been approved.</p>
-      <p><strong>Purpose:</strong> ${visitor.purpose}</p>
-      <p><strong>Host:</strong> ${visitor.personToMeet}</p>
-      <p><strong>Expected check-in:</strong> ${visitor.expectedCheckIn ? new Date(visitor.expectedCheckIn).toLocaleString() : "N/A"}</p>
-      <p><strong>Expected checkout:</strong> ${visitor.expectedCheckOut ? new Date(visitor.expectedCheckOut).toLocaleString() : "N/A"}</p>
-      ${qrImgTag}
-      <p>Present this QR code at the gate when checking in.</p>
-    </div>
-  `;
-
-  await sendEmail(
-    visitor.email,
-    "Visitor Approved - QR Code",
-    html,
-    attachments
-  );
 };
 
 const sendVisitorRejectionEmail = async (visitor) => {
@@ -245,66 +257,16 @@ export const scanExpiredVisitsAndNotify = async () => {
   }
 };
 
-// create a visitor
-// export const createVisitor = async (req, res) => {
-//   // Check if user already has active visit
-//   try {
-//     const existingVisit = await Visitor.findOne({
-//   userId: req.user.id,
-//   checkOutTime: null,
-// });
-
-// if (existingVisit) {
-//   return res.status(400).json({
-//     message: "You already have an active visit. Please checkout first.",
-//   });
-// }
-//     console.log("REQ.USER", req.user);
-
-//     // Security users can add visitors without waiting for admin approval
-//     const defaultStatus =
-//       req.user.role === "security" || req.user.role === "admin"
-//         ? "approved"
-//         : "pending";
-
-//     const { expectedCheckIn, expectedCheckOut } = req.body;
-
-//     if (expectedCheckIn && expectedCheckOut && new Date(expectedCheckOut) <= new Date(expectedCheckIn)) {
-//       return res.status(400).json({ message: "Expected checkout must be later than expected check-in." });
-//     }
-
-//     const visitor = await Visitor.create({
-//       ...req.body,
-//       userId: req.user.id,
-//       status: defaultStatus,
-//       checkInTime: expectedCheckIn ? new Date(expectedCheckIn) : Date.now(),
-//     });
-
-//     if (defaultStatus === "approved") {
-//       // const { qrToken, qrTokenExpiry } = createQrForVisitor(visitor._id);
-//       const { qrToken, qrTokenExpiry } = createQrForVisitor(visitor._id, visitor.expectedCheckOut);
-//       visitor.qrToken = qrToken;
-//       visitor.qrTokenExpiry = qrTokenExpiry;
-//       visitor.expiryNotified = false;
-//       await visitor.save();
-
-//       const qrDataUri = await generateQrDataUri(qrToken);
-//       await sendVisitorApprovalEmail(visitor, qrDataUri);
-//     }
-
-//     res.status(201).json(visitor);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
 export const createVisitor = async (req, res) => {
   try {
     // Apply restriction ONLY for visitor role
     if (req.user.role === "visitor") {
       const existingVisit = await Visitor.findOne({
-        userId: req.user.id,
-        checkOutTime: null,
-      });
+  userId: req.user.id,
+  status: "approved",
+  checkInTime: { $ne: null },
+  checkOutTime: null,
+});
 
       if (existingVisit) {
         return res.status(400).json({
@@ -337,7 +299,6 @@ export const createVisitor = async (req, res) => {
       userId: req.user.id,
       status: defaultStatus,
 
-      // ✅ Fix check-in logic
       checkInTime:
         req.user.role === "security" || req.user.role === "admin"
           ? new Date()
@@ -516,8 +477,10 @@ export const rejectVisitor = async(req, res) => {
 
     const updatedVisitor = await Visitor.findByIdAndUpdate(
       req.params.id,
-      { status: "rejected" },
-      { returnDocument: "after" }
+      { status: "rejected", 
+        checkOutTime: new Date(),
+      },
+      {new: true}
     );
 
     await sendVisitorRejectionEmail(updatedVisitor);

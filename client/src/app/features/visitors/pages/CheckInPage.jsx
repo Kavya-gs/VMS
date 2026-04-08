@@ -52,11 +52,18 @@ const CheckInPage = () => {
     try {
       const res = await API.get("/visitors/my-visits");
 
-      const active = res.data.find(v => !v.checkOutTime);
+      const active = res.data.find(
+        (v) =>
+          v.status === "approved" &&
+          v.checkInTime &&
+          !v.checkOutTime
+      );
+
       setHasActiveVisit(!!active);
 
       if (active) {
-        toast("Active visit found. Please checkout before new check-in.");
+        toast.dismiss(); 
+        toast.error("Active visit found. Please checkout before new check-in.");
       }
     } catch (err) {
       console.error(err);
@@ -65,23 +72,10 @@ const CheckInPage = () => {
 
   checkActiveVisit();
 }, []);
+
   const role = localStorage.getItem("role");
 
-  // const onSubmit = async (data) => {
-  //   setLoading(true);
-  //   try {
-  //     await API.post("/visitors/checkin", data);
-  //     toast.success("Visitor Checked In Successfully!");
-  //     reset();
-
-  //   } catch (error) {
-  //     console.error(error);
-  //     const errorMessage = error.response?.data?.message || "Error checking in visitor";
-  //     toast.error(errorMessage);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+ 
   const onSubmit = async (data) => {
   if (hasActiveVisit) {
     toast.error("Please checkout your previous visit first");
@@ -92,7 +86,14 @@ const CheckInPage = () => {
   try {
     await API.post("/visitors/checkin", data);
     toast.success("Visitor Checked In Successfully!");
-    // reset();
+    reset({
+  name: userData?.name || "",
+  email: userData?.email || "",
+  purpose: "",
+  personToMeet: "",
+  expectedCheckIn: "",
+  expectedCheckOut: "",
+});
   } catch (error) {
     const errorMessage = error.response?.data?.message || "Error checking in visitor";
     toast.error(errorMessage);

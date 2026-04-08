@@ -239,9 +239,9 @@ const ReportPage = () => {
                   <th className="p-3">Name</th>
                   <th className="p-3">Email</th>
                   <th className="p-3">Purpose</th>
-                  <th className="p-3">Status</th>
                   <th className="p-3">Check In</th>
                   <th className="p-3">Check Out</th>
+                  <th className="p-3">Status</th>
                 </tr>
               </thead>
 
