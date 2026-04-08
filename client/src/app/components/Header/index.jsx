@@ -20,10 +20,9 @@ const Header = () => {
 
   const role = localStorage.getItem("role");
   const token = localStorage.getItem("token");
+
   const [notifications, setNotifications] = useState([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
-  const [notificationsError, setNotificationsError] = useState("");
 
   const navItems = [
     { label: "Dashboard", path: "/dashboard", icon: Dashboard, roles: ["admin", "security", "visitor"] },
@@ -38,17 +37,11 @@ const Header = () => {
 
   const fetchNotifications = async () => {
     if (!token) return;
-    setNotificationsLoading(true);
-    setNotificationsError("");
-
     try {
       const res = await API.get("/visitors/notifications");
       setNotifications(res.data || []);
     } catch (err) {
-      setNotificationsError("Failed to load notifications");
-      console.error("Notification fetch error", err);
-    } finally {
-      setNotificationsLoading(false);
+      console.error(err);
     }
   };
 
@@ -60,50 +53,60 @@ const Header = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     navigate("/login");
-  }
+  };
 
-  if(!token) return null;
+  if (!token) return null;
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-sm shadow-sm">
-      {/* Main Navbar */}
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+
           {/* Logo */}
-          <div onClick={() => navigate("/dashboard")} className="flex items-center gap-3 cursor-pointer rounded-2xl border border-slate-200/80 bg-white px-3 py-2 shadow-sm transition hover:shadow-md">
-            <img src={logo} alt="logo" className="h-10 w-10 rounded-xl" />
-            <div className="leading-tight">
-              <p className="text-sm font-semibold text-slate-900">Visitor Management</p>
+          <div
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-3 cursor-pointer"
+          >
+            <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-indigo-50">
+              <img src={logo} alt="logo" className="h-8 w-8 rounded-md" />
             </div>
+            <p className="font-semibold text-gray-800">
+              Visitor Management
+            </p>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden items-center gap-2 lg:flex">
-            {navItems.filter((item) => item.roles.includes(role)).map((item) => (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition duration-300 ${
-                  isActive(item.path)
-                    ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-              >
-                <item.icon fontSize="small" />
-                {item.label}
-              </button>
-            ))}
+          {/* Nav */}
+          <div className="hidden lg:flex items-center gap-2">
+            {navItems
+              .filter((item) => item.roles.includes(role))
+              .map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${
+                    isActive(item.path)
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-indigo-600"
+                  }`}
+                >
+                  <item.icon fontSize="small" />
+                  {item.label}
+                </button>
+              ))}
           </div>
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
+
+            {/* Notifications */}
             <div className="relative">
               <button
-                onClick={() => setNotificationsOpen((prev) => !prev)}
-                className="relative flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50 px-3 py-2 text-slate-600 transition hover:bg-slate-100"
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition"
               >
                 <NotificationsIcon fontSize="small" />
                 {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
                     {notifications.length}
                   </span>
                 )}
@@ -111,71 +114,58 @@ const Header = () => {
 
               {notificationsOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-80 max-h-96 overflow-auto rounded-3xl border border-slate-200 bg-white shadow-lg z-50"
+                  className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-4"
                   onMouseLeave={() => setNotificationsOpen(false)}
                 >
-                  <div className="px-5 py-4 border-b border-slate-200 text-sm font-semibold text-slate-900">Notifications</div>
-                  <div className="space-y-3 p-4">
-                    {notificationsLoading && <div className="text-slate-600">Loading...</div>}
-                    {notificationsError && <div className="text-rose-600">{notificationsError}</div>}
-                    {!notificationsLoading && !notificationsError && notifications.length === 0 && (
-                      <div className="rounded-2xl bg-slate-50 p-4 text-slate-600">No notifications yet.</div>
-                    )}
-                    {!notificationsLoading && !notificationsError && notifications.length > 0 && (
-                      <ul className="space-y-3">
-                        {notifications.map((note) => (
-                          <li key={note.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                            <div className="font-semibold text-slate-900">{note.message}</div>
-                            <div className="mt-1 text-xs text-slate-500">
-                              {note.name} • {note.status}
-                            </div>
-                            <div className="mt-1 text-xs text-slate-400">
-                              {new Date(note.updatedAt || note.createdAt).toLocaleString()}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
+                  <p className="font-semibold mb-2">Notifications</p>
+
+                  {notifications.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No notifications</p>
+                  ) : (
+                    notifications.map((n) => (
+                      <div key={n.id} className="p-3 mb-2 rounded-lg bg-gray-50">
+                        <p className="text-sm font-medium">{n.message}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(n.createdAt).toLocaleString("en-GB")}
+                        </p>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Desktop User Menu */}
+            {/* User */}
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50 px-3 py-2 text-slate-700 transition hover:bg-slate-100"
+                className="flex items-center gap-2 px-3 py-2 rounded-full bg-gray-100 hover:bg-gray-200 transition"
               >
                 <Person fontSize="small" />
-                <span className="text-xs">Account</span>
+                <span className="text-sm">Account</span>
               </button>
 
               {userMenuOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-48 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg z-50"
+                  className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg"
                   onMouseLeave={() => setUserMenuOpen(false)}
                 >
                   <button
-                    onClick={() => {
-                      navigate("/profile");
-                      setUserMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-slate-700 hover:bg-slate-50 transition"
+                    onClick={() => navigate("/profile")}
+                    className="flex w-full px-4 py-3 text-sm hover:bg-gray-50"
                   >
-                    <Person fontSize="small" />
                     Profile
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-rose-600 hover:bg-rose-50 transition"
+                    className="flex w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50"
                   >
-                    <Logout fontSize="small" />
                     Logout
                   </button>
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </nav>

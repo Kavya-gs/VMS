@@ -65,7 +65,7 @@ const DashboardPage = () => {
     { name: "Checked Out", value: checkedOut },
   ];
 
-  const COLORS = ["#3b82f6", "#ef4444"]; // theme blue and red
+  const COLORS = ["#0d9e23", "#ef4444"]; 
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-10">
@@ -76,7 +76,7 @@ const DashboardPage = () => {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard title="Visitors Today" value={stats.visitorsToday} color="text-indigo-600" />
-            <StatCard title="Total Visitors" value={stats.totalVisitors} color="text-teal-500" />
+            <StatCard title="Total Visitors" value={stats.totalVisitors} color="text-teal-600" />
             <StatCard title="Visitors Inside" value={stats.visitorsInside} color="text-green-600" />
             <StatCard title="Checked Out Today" value={stats.checkedOutToday} color="text-red-600" />
           </div>

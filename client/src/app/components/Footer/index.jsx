@@ -12,7 +12,6 @@ import {
 } from "@mui/icons-material";
 import logo from "../../../assets/image.png";
 
-
 const Footer = () => {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
@@ -36,44 +35,39 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="w-full border-t border-slate-800 bg-slate-950 text-slate-100">
-      {/* Main Footer Content */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Company Info */}
+    <footer className="w-full bg-white border-t border-gray-200 shadow-sm mt-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+
+          {/* Company */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 shadow-inner">
-                <img src={logo} alt="logo" className="h-10 w-10 rounded-xl" />
+              <div className="h-12 w-12 flex items-center justify-center rounded-xl bg-indigo-50">
+                <img src={logo} alt="logo" className="h-10 w-10 rounded-lg" />
               </div>
             </div>
-            <p className="text-sm leading-relaxed text-slate-400">
-              Streamline visitor access with a secure, polished check-in experience.
+
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Streamline visitor access with a secure and professional check-in experience.
             </p>
-            {/* Social Icons */}
-            <div className="flex gap-3 pt-2">
-              {[
-                { Icon: Facebook, href: "https://facebook.com" },
-                { Icon: Twitter, href: "https://twitter.com" },
-                { Icon: LinkedIn, href: "https://linkedin.com" },
-                { Icon: Instagram, href: "https://instagram.com" },
-              ].map((item, idx) => (
-                <a
+
+            {/* Social */}
+            <div className="flex gap-3">
+              {[Facebook, Twitter, LinkedIn, Instagram].map((Icon, idx) => (
+                <div
                   key={idx}
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-slate-900 text-slate-400 transition hover:bg-indigo-600 hover:text-white"
+                  className="h-10 w-10 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:bg-indigo-600 hover:text-white transition cursor-pointer"
                 >
-                  <item.Icon fontSize="small" />
-                </a>
+                  <Icon fontSize="small" />
+                </div>
               ))}
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
+            <h4 className="mb-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
               Quick Links
             </h4>
             <ul className="space-y-2">
@@ -81,12 +75,12 @@ const Footer = () => {
                 <li key={link.path}>
                   <button
                     onClick={() => navigate(link.path)}
-                    className="group flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
+                    className="group flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 transition"
                   >
                     {link.label}
                     <ArrowForward
                       fontSize="small"
-                      className="transform transition duration-300 group-hover:translate-x-1"
+                      className="transition group-hover:translate-x-1"
                     />
                   </button>
                 </li>
@@ -96,7 +90,7 @@ const Footer = () => {
 
           {/* Support */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
+            <h4 className="mb-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
               Support
             </h4>
             <ul className="space-y-2">
@@ -104,12 +98,12 @@ const Footer = () => {
                 <li key={link.path}>
                   <button
                     onClick={() => navigate(link.path)}
-                    className="group flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
+                    className="group flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 transition"
                   >
                     {link.label}
                     <ArrowForward
                       fontSize="small"
-                      className="transform transition duration-300 group-hover:translate-x-1"
+                      className="transition group-hover:translate-x-1"
                     />
                   </button>
                 </li>
@@ -117,41 +111,33 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Contact Info */}
+          {/* Contact */}
           <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-slate-300">
+            <h4 className="mb-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
               Contact Info
             </h4>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
-                <Phone className="h-5 w-5 flex-shrink-0 text-indigo-400 mt-0.5" />
+                <Phone className="text-indigo-600 mt-1" />
                 <div>
-                  <p className="text-xs text-slate-500">Phone</p>
-                  <a
-                    href="tel:+15551234567"
-                    className="text-sm text-slate-400 transition hover:text-white"
-                  >
-                    +91 6679366761
-                  </a>
+                  <p className="text-xs text-gray-400">Phone</p>
+                  <p className="text-sm text-gray-600">+91 6679366761</p>
                 </div>
               </li>
+
               <li className="flex items-start gap-3">
-                <Email className="h-5 w-5 flex-shrink-0 text-indigo-400 mt-0.5" />
+                <Email className="text-indigo-600 mt-1" />
                 <div>
-                  <p className="text-xs text-slate-500">Email</p>
-                  <a
-                    href="mailto:support@vms.com"
-                    className="text-sm text-slate-400 transition hover:text-white"
-                  >
-                    support@vms.com
-                  </a>
+                  <p className="text-xs text-gray-400">Email</p>
+                  <p className="text-sm text-gray-600">support@vms.com</p>
                 </div>
               </li>
+
               <li className="flex items-start gap-3">
-                <LocationOn className="h-5 w-5 flex-shrink-0 text-indigo-400 mt-0.5" />
+                <LocationOn className="text-indigo-600 mt-1" />
                 <div>
-                  <p className="text-xs text-slate-500">Location</p>
-                  <p className="text-sm text-slate-400">Udyog Vihar, Gurugram</p>
+                  <p className="text-xs text-gray-400">Location</p>
+                  <p className="text-sm text-gray-600">Udyog Vihar, Gurugram</p>
                 </div>
               </li>
             </ul>
@@ -159,23 +145,27 @@ const Footer = () => {
         </div>
 
         {/* Divider */}
-        <div className="my-8 sm:my-10 border-t border-slate-800"></div>
+        <div className="my-8 border-t border-gray-200"></div>
 
-        {/* Bottom Footer */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-400">
-          <p className="text-sm">&copy; {currentYear} Visitor Management System. All rights reserved.</p>
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+        {/* Bottom */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-gray-500">
+          <p className="text-sm">
+            &copy; {currentYear} Visitor Management System. All rights reserved.
+          </p>
+
+          <div className="flex gap-4">
             {footerLinks.map((link) => (
               <button
                 key={link.path}
                 onClick={() => navigate(link.path)}
-                className="text-xs sm:text-sm transition hover:text-white"
+                className="text-sm hover:text-indigo-600 transition"
               >
                 {link.label}
               </button>
             ))}
           </div>
         </div>
+
       </div>
     </footer>
   );

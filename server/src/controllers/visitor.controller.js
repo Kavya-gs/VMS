@@ -361,11 +361,6 @@ export const checkoutVisitor = async (req, res) => {
       return res.status(400).json({ message: "Visitor must be approved before checkout." });
     }
 
-    // // Validate QR token expiry
-    // if (visitor.qrTokenExpiry && new Date() > visitor.qrTokenExpiry) {
-    //   await notifySecurityOfExpiredVisit(visitor);
-    //   return res.status(400).json({ message: "QR code expired. Please request a new approval." });
-    // }
 const isPrivileged = req.user.role === "admin" || req.user.role === "security";
 
 if (visitor.qrTokenExpiry && new Date() > visitor.qrTokenExpiry && !isPrivileged) {
