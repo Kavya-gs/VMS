@@ -22,16 +22,6 @@ const CheckInPage = () => {
     resolver: yupResolver(visitorSchema),
   });
 
-  // useEffect(() => {
-  //   const role = localStorage.getItem("role");
-  //   if (role === "visitor") {
-  //     const user = JSON.parse(localStorage.getItem("user"));
-  //     if (user) {
-  //       setValue("name", user.name);
-  //       setValue("email", user.email);
-  //     }
-  //   }
-  // }, [setValue]);
   useEffect(() => {
   const role = localStorage.getItem("role");
   const user = JSON.parse(localStorage.getItem("user"));
@@ -85,7 +75,7 @@ const CheckInPage = () => {
   setLoading(true);
   try {
     await API.post("/visitors/checkin", data);
-    toast.success("Visitor Checked In Successfully!");
+    toast.success("Applied for Check-In Successfully!");
     reset({
   name: userData?.name || "",
   email: userData?.email || "",

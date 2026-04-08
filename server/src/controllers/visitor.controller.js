@@ -152,19 +152,19 @@ const sendVisitorRejectionEmail = async (visitor) => {
   await sendEmail(visitor.email, "Visitor Request Rejected", html);
 };
 
-const sendVisitorCheckInEmail = async (visitor) => {
-  const html = `
-    <div style="font-family: Arial, sans-serif; color: #111;">
-      <h2>Visitor Check-In Confirmed</h2>
-      <p>The visitor <strong>${visitor.name}</strong> has been checked in successfully.</p>
-      <p><strong>Purpose:</strong> ${visitor.purpose}</p>
-      <p><strong>Host:</strong> ${visitor.personToMeet}</p>
-      <p><strong>Check-in time:</strong> ${visitor.checkInTime ? new Date(visitor.checkInTime).toLocaleString() : new Date().toLocaleString()}</p>
-    </div>
-  `;
+// const sendVisitorCheckInEmail = async (visitor) => {
+//   const html = `
+//     <div style="font-family: Arial, sans-serif; color: #111;">
+//       <h2>Visitor Check-In Confirmed</h2>
+//       <p>The visitor <strong>${visitor.name}</strong> has been checked in successfully.</p>
+//       <p><strong>Purpose:</strong> ${visitor.purpose}</p>
+//       <p><strong>Host:</strong> ${visitor.personToMeet}</p>
+//       <p><strong>Check-in time:</strong> ${visitor.checkInTime ? new Date(visitor.checkInTime).toLocaleString() : new Date().toLocaleString()}</p>
+//     </div>
+//   `;
 
-  await sendEmail(visitor.email, "Visitor Checked In", html);
-};
+//   await sendEmail(visitor.email, "Visitor Checked In", html);
+// };
 
 const sendVisitorCheckOutEmail = async (visitor) => {
   const html = `
