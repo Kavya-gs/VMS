@@ -4,40 +4,6 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import QRCode from "qrcode";
 
-// const sendEmail = async (to, subject, html) => {
-//   try {
-//     if (!to) return;
-
-//     console.log("ENV DEBUG:", {
-//       host: process.env.SMTP_HOST,
-//       user: process.env.SMTP_USER,
-//       pass: process.env.SMTP_PASS ? "EXISTS" : "MISSING",
-//     });
-
-//     // Create transporter INSIDE function
-//     const transporter = nodemailer.createTransport({
-//       host: process.env.SMTP_HOST,
-//       port: Number(process.env.SMTP_PORT) || 587,
-//       secure: false,
-//       auth: {
-//         user: process.env.SMTP_USER,
-//         pass: process.env.SMTP_PASS,
-//       },
-//     });
-
-//     const info = await transporter.sendMail({
-//       from: process.env.EMAIL_FROM || process.env.SMTP_USER,
-//       to,
-//       subject,
-//       html,
-//     });
-
-//     console.log("✅ Email sent:", info.response);
-
-//   } catch (error) {
-//     console.error("❌ Email error:", error);
-//   }
-// };
 
 const sendEmail = async (to, subject, html, attachments = []) => {
   try {
@@ -543,7 +509,7 @@ export const getVisitorByDate = async (req, res) => {
 
       to.setHours(23, 59, 59, 999);
 
-      // ✅ Prevent invalid date crash
+      // Prevent invalid date crash
       if (!isNaN(from) && !isNaN(to)) {
         filter.createdAt = {
           $gte: from,
