@@ -67,8 +67,8 @@ const ApprovalsPage = () => {
               <td className="p-3">{visitor.name}</td>
               <td className="p-3">{visitor.purpose}</td>
               <td className="p-3">{visitor.personToMeet}</td>
-              <td className="p-3">{visitor.expectedCheckIn ? new Date(visitor.expectedCheckIn).toLocaleString() : "-"}</td>
-              <td className="p-3">{visitor.expectedCheckOut ? new Date(visitor.expectedCheckOut).toLocaleString() : "-"}</td>
+              <td className="p-3">{visitor.expectedCheckIn ? new Date(visitor.expectedCheckIn).toLocaleString("en-GB") : "-"}</td>
+              <td className="p-3">{visitor.expectedCheckOut ? new Date(visitor.expectedCheckOut).toLocaleString("en-GB") : "-"}</td>
               <td className="p-3 flex gap-2">
                 <button
                   onClick={() => approveVisitor(visitor._id)}

@@ -16,7 +16,6 @@ const ReportPage = () => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-
       let res;
 
       if (startDate && endDate) {
@@ -36,49 +35,23 @@ const ReportPage = () => {
     }
   };
 
-  // useEffect(() => {
-  //   // Fix double API call 
-  //   if (hasFetched.current) return;
-  //   hasFetched.current = true;
-
-  //   fetchReports();
-
-  //   intervalRef.current = setInterval(() => {
-  //     fetchReports();
-  //   }, 5000);
-
-  //   return () => {
-  //     if (intervalRef.current) clearInterval(intervalRef.current);
-  //   };
-  // }, []);
-
-
   useEffect(() => {
     fetchReports();
-  },[]);
+  }, []);
 
   useEffect(() => {
-  if (startDate && endDate) {
-    fetchReports();
-  }
-}, [startDate, endDate]);
-
+    if (startDate && endDate) fetchReports();
+  }, [startDate, endDate]);
 
   const handleFilter = () => {
     if (!startDate || !endDate) {
       toast.error("Please select both dates");
       return;
     }
-
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
     fetchReports();
     toast.success("Data fetched successfully");
   };
 
-  //filter {today, last 7 days}
   const setToday = () => {
     const today = new Date().toISOString().split("T")[0];
     setStartDate(today);
@@ -98,18 +71,17 @@ const ReportPage = () => {
     setStartDate("");
     setEndDate("");
     fetchReports();
-  }
+  };
 
   const exportCSV = () => {
     const headers = ["S.No", "Name", "Email", "Purpose", "Check In Time", "Check Out Time", "Status"];
-
     const rows = visitors.map((v, index) => [
       index + 1,
       v.name,
       v.email,
       v.purpose,
-      v.checkInTime ? new Date(v.checkInTime).toLocaleString() : "-",
-      v.checkOutTime ? new Date(v.checkOutTime).toLocaleString() : "-",
+      v.checkInTime ? new Date(v.checkInTime).toLocaleString("en-GB") : "-",
+      v.checkOutTime ? new Date(v.checkOutTime).toLocaleString("en-GB") : "-",
       v.status,
     ]);
 
@@ -125,23 +97,18 @@ const ReportPage = () => {
 
   const exportPDF = () => {
     const doc = new jsPDF();
-
     doc.text("Visitor Report", 14, 10);
 
     const tableColumn = ["S.No", "Name", "Email", "Purpose", "Check In Time", "Check Out Time", "Status"];
-    const tableRows = [];
-
-    visitors.forEach((v, index) => {
-      tableRows.push([
-        index + 1,
-        v.name,
-        v.email,
-        v.purpose,
-        v.checkInTime ? new Date(v.checkInTime).toLocaleString() : "-",
-        v.checkOutTime ? new Date(v.checkOutTime).toLocaleString() : "-",
-        v.status
-      ]);
-    });
+    const tableRows = visitors.map((v, index) => [
+      index + 1,
+      v.name,
+      v.email,
+      v.purpose,
+      v.checkInTime ? new Date(v.checkInTime).toLocaleString("en-GB") : "-",
+      v.checkOutTime ? new Date(v.checkOutTime).toLocaleString("en-GB") : "-",
+      v.status,
+    ]);
 
     autoTable(doc, {
       head: [tableColumn],
@@ -155,20 +122,20 @@ const ReportPage = () => {
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Reports Dashboard</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold text-gray-800">Reports Dashboard</h1>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={exportCSV}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded shadow"
+            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
           >
             Export CSV
           </button>
 
           <button
             onClick={exportPDF}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded shadow"
+            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
           >
             Export PDF
           </button>
@@ -176,45 +143,45 @@ const ReportPage = () => {
       </div>
 
       {/* FILTERS */}
-      <div className="flex flex-wrap gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-6">
         <input
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="border p-2 rounded"
+          className="border p-2 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none"
         />
 
         <input
           type="date"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
-          className="border p-2 rounded"
+          className="border p-2 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none"
         />
 
         <button
           onClick={handleFilter}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
         >
           Filter
         </button>
 
         <button
           onClick={setToday}
-          className="bg-purple-500 text-white px-4 py-2 rounded"
+          className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
         >
           Today
         </button>
 
         <button
           onClick={setLast7Days}
-          className="bg-indigo-500 text-white px-4 py-2 rounded"
+          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
         >
           Last 7 Days
         </button>
 
         <button
           onClick={clearfilter}
-          className="bg-indigo-500 text-white px-4 py-2 rounded"
+          className="bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
         >
           Clear
         </button>
@@ -222,44 +189,42 @@ const ReportPage = () => {
 
       {/* DATA */}
       {loading ? (
-        <p className="text-center">Loading...</p>
+        <p className="text-center text-gray-600">Loading...</p>
       ) : visitors.length === 0 ? (
         <p className="text-center text-gray-500">No data found</p>
       ) : (
-        <div className="bg-white rounded-xl shadow p-5">
-          <h2 className="text-lg font-semibold mb-4">
+        <div className="bg-white rounded-xl shadow p-5 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">
             Visitor Details ({visitors.length})
           </h2>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-gray-100 text-left">
-                  <th className="p-3">S.No</th>
-                  <th className="p-3">Name</th>
-                  <th className="p-3">Email</th>
-                  <th className="p-3">Purpose</th>
-                  <th className="p-3">Check In</th>
-                  <th className="p-3">Check Out</th>
-                  <th className="p-3">Status</th>
-                </tr>
-              </thead>
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="p-3">S.No</th>
+                <th className="p-3">Name</th>
+                <th className="p-3">Email</th>
+                <th className="p-3">Purpose</th>
+                <th className="p-3">Check In</th>
+                <th className="p-3">Check Out</th>
+                <th className="p-3">Status</th>
+              </tr>
+            </thead>
 
-              <tbody>
-                {visitors.map((v, index) => (
-                  <tr key={v._id} className="border-t hover:bg-gray-50">
-                    <td className="p-3">{index + 1}</td>
-                    <td className="p-3">{v.name}</td>
-                    <td className="p-3">{v.email}</td>
-                    <td className="p-3">{v.purpose}</td>
-                    <td className="p-3">{v.checkInTime ? new Date(v.checkInTime).toLocaleString(): "—"}</td>
-                    <td className="p-3">{v.checkOutTime ? new Date(v.checkOutTime).toLocaleString(): "—"}</td>
-                    <td className="p-3">{v.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <tbody>
+              {visitors.map((v, index) => (
+                <tr key={v._id} className="border-t hover:bg-gray-50 transition">
+                  <td className="p-3">{index + 1}</td>
+                  <td className="p-3">{v.name}</td>
+                  <td className="p-3">{v.email}</td>
+                  <td className="p-3">{v.purpose}</td>
+                  <td className="p-3">{v.checkInTime ? new Date(v.checkInTime).toLocaleString("en-GB") : "—"}</td>
+                  <td className="p-3">{v.checkOutTime ? new Date(v.checkOutTime).toLocaleString("en-GB") : "—"}</td>
+                  <td className="p-3">{v.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
