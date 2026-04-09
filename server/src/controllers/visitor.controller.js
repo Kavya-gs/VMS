@@ -4,20 +4,23 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import QRCode from "qrcode";
 
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+  connectionTimeout: 10000,
+});
 
 const sendEmail = async (to, subject, html, attachments = []) => {
   try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: process.env.EMAIL_FROM,
       to,
       subject,
@@ -25,7 +28,7 @@ const sendEmail = async (to, subject, html, attachments = []) => {
       attachments,
     });
 
-    console.log("Email sent");
+    console.log("Email sent:", info.messageId);
   } catch (error) {
     console.error("Email error:", error);
   }
@@ -46,18 +49,16 @@ const createQrForVisitor = (visitorId, expectedCheckOut) => {
   const expiryTime = new Date(expectedCheckOut);
 
   const secondsUntilExpiry = Math.floor(
-    (expiryTime.getTime() - Date.now()) / 1000
+    (expiryTime.getTime() - Date.now()) / 1000,
   );
 
   if (secondsUntilExpiry <= 0) {
     throw new Error("Invalid expiry time");
   }
 
-  const qrToken = jwt.sign(
-    { visitorId, type: "qr" },
-    QR_SECRET,
-    { expiresIn: secondsUntilExpiry }
-  );
+  const qrToken = jwt.sign({ visitorId, type: "qr" }, QR_SECRET, {
+    expiresIn: secondsUntilExpiry,
+  });
 
   return {
     qrToken,
@@ -66,14 +67,16 @@ const createQrForVisitor = (visitorId, expectedCheckOut) => {
 };
 
 const getSecurityEmails = async () => {
-  const users = await User.find({ role: "security", email: { $exists: true, $ne: "" } });
+  const users = await User.find({
+    role: "security",
+    email: { $exists: true, $ne: "" },
+  });
   return users.map((user) => user.email).filter(Boolean);
 };
 
 const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
   try {
     console.log("Approval email triggered for:", visitor.email);
-
 
     if (!visitor.email) {
       console.log(" No email found for visitor");
@@ -89,7 +92,7 @@ const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
 
         attachments.push({
           filename: "qrcode.png",
-          content: base64Data, 
+          content: base64Data,
           encoding: "base64",
           cid: "qrcode",
         });
@@ -128,11 +131,10 @@ const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
       visitor.email,
       "Visitor Approved - QR Code",
       html,
-      attachments
+      attachments,
     );
 
     console.log("Approval email sent successfully");
-
   } catch (error) {
     console.error(" Approval email failed:", error);
   }
@@ -199,7 +201,11 @@ const notifySecurityOfExpiredVisit = async (visitor) => {
       </div>
     `;
 
-    await sendEmail(recipients.join(", "), `Expired Visitor QR: ${visitor.name}`, html);
+    await sendEmail(
+      recipients.join(", "),
+      `Expired Visitor QR: ${visitor.name}`,
+      html,
+    );
     await Visitor.findByIdAndUpdate(visitor._id, { expiryNotified: true });
   } catch (error) {
     console.error("Expired visit notification error:", error);
@@ -228,11 +234,11 @@ export const createVisitor = async (req, res) => {
     // Apply restriction ONLY for visitor role
     if (req.user.role === "visitor") {
       const existingVisit = await Visitor.findOne({
-  userId: req.user.id,
-  status: "approved",
-  checkInTime: { $ne: null },
-  checkOutTime: null,
-});
+        userId: req.user.id,
+        status: "approved",
+        checkInTime: { $ne: null },
+        checkOutTime: null,
+      });
 
       if (existingVisit) {
         return res.status(400).json({
@@ -274,7 +280,7 @@ export const createVisitor = async (req, res) => {
     if (defaultStatus === "approved") {
       const { qrToken, qrTokenExpiry } = createQrForVisitor(
         visitor._id,
-        visitor.expectedCheckOut
+        visitor.expectedCheckOut,
       );
 
       visitor.qrToken = qrToken;
@@ -306,7 +312,6 @@ export const getVisitors = async (req, res) => {
 // for all visitors which are inside
 export const checkoutVisitor = async (req, res) => {
   try {
-
     const { id } = req.params;
 
     const visitor = await Visitor.findById(id);
@@ -324,17 +329,24 @@ export const checkoutVisitor = async (req, res) => {
     }
 
     if (visitor.status !== "approved") {
-      return res.status(400).json({ message: "Visitor must be approved before checkout." });
+      return res
+        .status(400)
+        .json({ message: "Visitor must be approved before checkout." });
     }
 
-const isPrivileged = req.user.role === "admin" || req.user.role === "security";
+    const isPrivileged =
+      req.user.role === "admin" || req.user.role === "security";
 
-if (visitor.qrTokenExpiry && new Date() > visitor.qrTokenExpiry && !isPrivileged) {
-  await notifySecurityOfExpiredVisit(visitor);
-  return res.status(400).json({
-    message: "QR code expired. Please request a new approval.",
-  });
-}
+    if (
+      visitor.qrTokenExpiry &&
+      new Date() > visitor.qrTokenExpiry &&
+      !isPrivileged
+    ) {
+      await notifySecurityOfExpiredVisit(visitor);
+      return res.status(400).json({
+        message: "QR code expired. Please request a new approval.",
+      });
+    }
 
     visitor.checkOutTime = new Date();
     visitor.status = "checked-out";
@@ -347,63 +359,64 @@ if (visitor.qrTokenExpiry && new Date() > visitor.qrTokenExpiry && !isPrivileged
       await sendEmail(
         securityRecipients.join(", "),
         `Visitor Checked Out: ${visitor.name}`,
-        `<div style="font-family: Arial, sans-serif; color: #111;"><h2>Visitor Checked Out</h2><p>The visitor <strong>${visitor.name}</strong> has checked out.</p><p><strong>Host:</strong> ${visitor.personToMeet}</p><p><strong>Checkout time:</strong> ${new Date(visitor.checkOutTime).toLocaleString()}</p></div>`
+        `<div style="font-family: Arial, sans-serif; color: #111;"><h2>Visitor Checked Out</h2><p>The visitor <strong>${visitor.name}</strong> has checked out.</p><p><strong>Host:</strong> ${visitor.personToMeet}</p><p><strong>Checkout time:</strong> ${new Date(visitor.checkOutTime).toLocaleString()}</p></div>`,
       );
     }
 
     res.status(200).json(visitor);
-
   } catch (error) {
-
     console.error("Checkout Error:", error);
 
     res.status(500).json({
       message: "Checkout failed",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
-export const getVisitorStats = async(req, res) => {
-    try {
-        const totalVisitors = await Visitor.countDocuments();
+export const getVisitorStats = async (req, res) => {
+  try {
+    const totalVisitors = await Visitor.countDocuments();
     const visitorsInside = await Visitor.countDocuments({
-        checkOutTime: null
+      checkOutTime: null,
     });
 
     const startOfToday = new Date();
-    startOfToday.setHours(0,0,0,0);
+    startOfToday.setHours(0, 0, 0, 0);
 
     const visitorsToday = await Visitor.countDocuments({
-        checkInTime: { $gte: startOfToday }
-    })
+      checkInTime: { $gte: startOfToday },
+    });
 
     const checkedOutToday = await Visitor.countDocuments({
-        checkOutTime: { $gte: startOfToday }
-    })
-    res.status(200).json({
-        totalVisitors,
-        visitorsInside,
-        visitorsToday,
-        checkedOutToday
+      checkOutTime: { $gte: startOfToday },
     });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    res.status(200).json({
+      totalVisitors,
+      visitorsInside,
+      visitorsToday,
+      checkedOutToday,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 // for approvals page -> when user status is approved
-export const approveVisitor = async(req, res) => {
+export const approveVisitor = async (req, res) => {
   try {
     const visitor = await Visitor.findById(req.params.id);
-    
+
     if (!visitor) {
       return res.status(404).json({ message: "Visitor not found" });
     }
 
     // Generate QR token valid for 24 hours
     // const { qrToken, qrTokenExpiry } = createQrForVisitor(visitor._id);
-    const { qrToken, qrTokenExpiry } = createQrForVisitor(visitor._id, visitor.expectedCheckOut);
+    const { qrToken, qrTokenExpiry } = createQrForVisitor(
+      visitor._id,
+      visitor.expectedCheckOut,
+    );
 
     const updatedVisitor = await Visitor.findByIdAndUpdate(
       req.params.id,
@@ -414,7 +427,7 @@ export const approveVisitor = async(req, res) => {
         expiryNotified: false,
         checkInTime: new Date(),
       },
-      { returnDocument: "after" }
+      { returnDocument: "after" },
     );
 
     const qrDataUri = await generateQrDataUri(qrToken);
@@ -428,35 +441,34 @@ export const approveVisitor = async(req, res) => {
 };
 
 //when user status is rejected
-export const rejectVisitor = async(req, res) => {
+export const rejectVisitor = async (req, res) => {
   try {
     const visitor = await Visitor.findById(req.params.id);
-    
+
     if (!visitor) {
       return res.status(404).json({ message: "Visitor not found" });
     }
 
     const updatedVisitor = await Visitor.findByIdAndUpdate(
       req.params.id,
-      { status: "rejected", 
-        checkOutTime: new Date(),
-      },
-      {new: true}
+      { status: "rejected", checkOutTime: new Date() },
+      { new: true },
     );
 
     await sendVisitorRejectionEmail(updatedVisitor);
-    
+
     res.json(updatedVisitor);
   } catch (error) {
     console.error("Rejection Error:", error);
     res.status(500).json({ message: "Error rejecting visitor" });
   }
-}
+};
 
 export const getMyVisits = async (req, res) => {
   try {
-    const visits = await Visitor.find({ userId: req.user.id })
-      .sort({ createdAt: -1 });
+    const visits = await Visitor.find({ userId: req.user.id }).sort({
+      createdAt: -1,
+    });
 
     res.json(visits);
   } catch (error) {
@@ -472,9 +484,12 @@ export const getNotifications = async (req, res) => {
 
     const notifications = visits.map((visit) => {
       let message = "Visitor status updated";
-      if (visit.status === "approved") message = "Your visitor request is approved.";
-      if (visit.status === "pending") message = "Your visitor request is pending approval.";
-      if (visit.status === "rejected") message = "Your visitor request is rejected.";
+      if (visit.status === "approved")
+        message = "Your visitor request is approved.";
+      if (visit.status === "pending")
+        message = "Your visitor request is pending approval.";
+      if (visit.status === "rejected")
+        message = "Your visitor request is rejected.";
       if (visit.status === "checked-in") message = "Visitor has checked in.";
       if (visit.status === "checked-out") message = "Visitor has checked out.";
 
@@ -499,7 +514,7 @@ export const getNotifications = async (req, res) => {
 
 export const getVisitorByDate = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query; 
+    const { startDate, endDate } = req.query;
 
     let filter = {};
 
