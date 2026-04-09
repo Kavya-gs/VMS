@@ -8,7 +8,6 @@ import { scanExpiredVisitsAndNotify } from "./src/controllers/visitor.controller
 // dotenv.config();
 connectDB();
 
-app.use(cors());
 app.use("/api/auth", authRoutes);
 
 const PORT = process.env.PORT || 5000;
