@@ -6,7 +6,7 @@ import QRCode from "qrcode";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
+  port: 587,
   secure: false,
   auth: {
     user: process.env.SMTP_USER,
@@ -29,8 +29,10 @@ const sendEmail = async (to, subject, html, attachments = []) => {
     });
 
     console.log("Email sent:", info.messageId);
+    return true;
   } catch (error) {
     console.error("Email error:", error);
+    return false;
   }
 };
 
@@ -127,14 +129,18 @@ const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
       </div>
     `;
 
-    await sendEmail(
+    const success = await sendEmail(
       visitor.email,
       "Visitor Approved - QR Code",
       html,
       attachments,
     );
 
-    console.log("Approval email sent successfully");
+    if (success) {
+      console.log("Approval email sent successfully");
+    } else {
+      console.log("Approval email failed");
+    }
   } catch (error) {
     console.error(" Approval email failed:", error);
   }
