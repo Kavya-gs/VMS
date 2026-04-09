@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 import QRCode from "qrcode";
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
+  service: "gmail",
   port: 587,
   secure: false,
   auth: {
