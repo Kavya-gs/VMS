@@ -1,31 +1,41 @@
 import Visitor from "../models/visitor.model.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
 import QRCode from "qrcode";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  }
-});
+// const transporter = nodemailer.createTransport({
+//   service: "gmail",
+//   auth: {
+//     user: process.env.SMTP_USER,
+//     pass: process.env.SMTP_PASS,
+//   }
+// });
 
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const sendEmail = async (to, subject, html, attachments = []) => {
   try {
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+    const msg = {
       to,
+      from: process.env.EMAIL_FROM, 
       subject,
+      text: "Notification from Visitor Management System",
       html,
-      attachments,
-    });
+      attachments: attachments.map((att) => ({
+        content: att.content,
+        filename: att.filename,
+        type: "image/png",
+        disposition: "inline",
+        content_id: att.cid, 
+      })),
+    };
 
-    console.log("Email sent:", info.messageId);
+    await sgMail.send(msg);
+
+    console.log("✅ Email sent successfully");
     return true;
   } catch (error) {
-    console.error("Email error:", error);
+    console.error("❌ SendGrid Error:", error.response?.body || error.message);
     return false;
   }
 };
