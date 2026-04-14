@@ -6,7 +6,7 @@ import dashboardRoutes from "./routes/dashboard.routes.js";
 const app = express();
 
 app.use(cors({
-  origin: "https://vms-1-w3th.onrender.com", 
+  origin: ["https://vms-1-w3th.onrender.com", "http://localhost:5173"],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));

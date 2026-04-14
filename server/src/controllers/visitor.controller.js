@@ -490,7 +490,7 @@ export const getNotifications = async (req, res) => {
   try {
     const visits = await Visitor.find({ userId: req.user.id })
       .sort({ updatedAt: -1 })
-      .limit(20);
+      .limit(5);
 
     const notifications = visits.map((visit) => {
       let message = "Visitor status updated";
