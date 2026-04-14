@@ -22,8 +22,8 @@ const VisitorsPage = () => {
         visitor.checkInTime &&
         !visitor.checkOutTime) ||
       (statusFilter === "checkedout" &&
-        visitor.checkOutTime !== null &&
-        visitor.checkOutTime !== undefined) ||
+        visitor.status === "approved" &&
+        visitor.checkOutTime) ||
       (statusFilter === "rejected" && visitor.status === "rejected");
 
     return matchSearch && matchStatus;
@@ -99,10 +99,7 @@ const VisitorsPage = () => {
                   Checked Out
                 </span>
               );
-            } else if (
-              visitor.status === "approved" &&
-              visitor.checkInTime
-            ) {
+            } else if (visitor.status === "approved" && visitor.checkInTime) {
               statusBadge = (
                 <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-sm">
                   Inside
@@ -141,8 +138,8 @@ const VisitorsPage = () => {
                   {visitor.status === "rejected"
                     ? "—"
                     : visitor.checkOutTime
-                    ? new Date(visitor.checkOutTime).toLocaleString("en-IN")
-                    : "—"}
+                      ? new Date(visitor.checkOutTime).toLocaleString("en-IN")
+                      : "—"}
                 </td>
 
                 {/*  STATUS */}
