@@ -3,14 +3,7 @@ import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 import sgMail from "@sendgrid/mail";
 import QRCode from "qrcode";
-
-// const transporter = nodemailer.createTransport({
-//   service: "gmail",
-//   auth: {
-//     user: process.env.SMTP_USER,
-//     pass: process.env.SMTP_PASS,
-//   }
-// });
+import { createNotificationForRoles } from "./notifications.controller.js";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const sendEmail = async (to, subject, html, attachments = []) => {
@@ -78,6 +71,30 @@ const getSecurityEmails = async () => {
     email: { $exists: true, $ne: "" },
   });
   return users.map((user) => user.email).filter(Boolean);
+};
+
+const sendSecurityAlertEmail = async (subject, html) => {
+  try {
+    const securityEmails = await getSecurityEmails();
+
+    if (securityEmails.length === 0) {
+      console.log("No security emails found");
+      return false;
+    }
+
+    for (const email of securityEmails) {
+      const success = await sendEmail(email, subject, html);
+      if (success) {
+        console.log(`Security alert sent to ${email}`);
+      } else {
+        console.log(`Failed to send security alert to ${email}`);
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error("Security alert email error:", error);
+    return false;
+  }
 };
 
 const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
@@ -164,20 +181,6 @@ const sendVisitorRejectionEmail = async (visitor) => {
   await sendEmail(visitor.email, "Visitor Request Rejected", html);
 };
 
-// const sendVisitorCheckInEmail = async (visitor) => {
-//   const html = `
-//     <div style="font-family: Arial, sans-serif; color: #111;">
-//       <h2>Visitor Check-In Confirmed</h2>
-//       <p>The visitor <strong>${visitor.name}</strong> has been checked in successfully.</p>
-//       <p><strong>Purpose:</strong> ${visitor.purpose}</p>
-//       <p><strong>Host:</strong> ${visitor.personToMeet}</p>
-//       <p><strong>Check-in time:</strong> ${visitor.checkInTime ? new Date(visitor.checkInTime).toLocaleString() : new Date().toLocaleString()}</p>
-//     </div>
-//   `;
-
-//   await sendEmail(visitor.email, "Visitor Checked In", html);
-// };
-
 const sendVisitorCheckOutEmail = async (visitor) => {
   const html = `
     <div style="font-family: Arial, sans-serif; color: #111;">
@@ -241,7 +244,6 @@ export const scanExpiredVisitsAndNotify = async () => {
 
 export const createVisitor = async (req, res) => {
   try {
-    // Apply restriction ONLY for visitor role
     if (req.user.role === "visitor") {
       const existingVisit = await Visitor.findOne({
         userId: req.user.id,
@@ -256,8 +258,6 @@ export const createVisitor = async (req, res) => {
         });
       }
     }
-
-    console.log("REQ.USER", req.user);
 
     const defaultStatus =
       req.user.role === "security" || req.user.role === "admin"
@@ -301,6 +301,30 @@ export const createVisitor = async (req, res) => {
 
       const qrDataUri = await generateQrDataUri(qrToken);
       await sendVisitorApprovalEmail(visitor, qrDataUri);
+
+      if (req.user.role === "security" || req.user.role === "admin") {
+        await createNotificationForRoles(["admin"], {
+          visitorId: visitor._id,
+          type: "check-in-request",
+          title: "Visitor Check-In",
+          message: `${visitor.name} has checked in. Purpose: ${visitor.purpose}`,
+          visitorName: visitor.name,
+          visitorEmail: visitor.email,
+          purpose: visitor.purpose,
+          personToMeet: visitor.personToMeet,
+        });
+      }
+    } else {
+      await createNotificationForRoles(["admin"], {
+        visitorId: visitor._id,
+        type: "check-in-request",
+        title: "New Visitor Request",
+        message: `New visitor request from ${visitor.name}. Purpose: ${visitor.purpose}`,
+        visitorName: visitor.name,
+        visitorEmail: visitor.email,
+        purpose: visitor.purpose,
+        personToMeet: visitor.personToMeet,
+      });
     }
 
     res.status(201).json(visitor);
@@ -309,7 +333,6 @@ export const createVisitor = async (req, res) => {
   }
 };
 
-// Fetch all visitors
 export const getVisitors = async (req, res) => {
   try {
     const visitors = await Visitor.find().sort({ createdAt: -1 });
@@ -319,7 +342,6 @@ export const getVisitors = async (req, res) => {
   }
 };
 
-// for all visitors which are inside
 export const checkoutVisitor = async (req, res) => {
   try {
     const { id } = req.params;
@@ -364,14 +386,33 @@ export const checkoutVisitor = async (req, res) => {
     await visitor.save();
     await sendVisitorCheckOutEmail(visitor);
 
-    const securityRecipients = await getSecurityEmails();
-    if (securityRecipients.length > 0) {
-      await sendEmail(
-        securityRecipients.join(", "),
-        `Visitor Checked Out: ${visitor.name}`,
-        `<div style="font-family: Arial, sans-serif; color: #111;"><h2>Visitor Checked Out</h2><p>The visitor <strong>${visitor.name}</strong> has checked out.</p><p><strong>Host:</strong> ${visitor.personToMeet}</p><p><strong>Checkout time:</strong> ${new Date(visitor.checkOutTime).toLocaleString()}</p></div>`,
-      );
-    }
+    const checkoutAlertHtml = `
+      <div style="font-family: Arial, sans-serif; color: #111;">
+        <h2>Visitor Checked Out</h2>
+        <p>The following visitor has successfully checked out:</p>
+        <p><strong>Visitor Name:</strong> ${visitor.name}</p>
+        <p><strong>Email:</strong> ${visitor.email}</p>
+        <p><strong>Purpose:</strong> ${visitor.purpose}</p>
+        <p><strong>Person to Meet:</strong> ${visitor.personToMeet}</p>
+        <p><strong>Check-in Time:</strong> ${visitor.checkInTime ? new Date(visitor.checkInTime).toLocaleString() : "N/A"}</p>
+        <p><strong>Check-out Time:</strong> ${visitor.checkOutTime ? new Date(visitor.checkOutTime).toLocaleString() : "N/A"}</p>
+        <p style="margin-top: 20px; padding: 10px; background-color: #f0f0f0; border-left: 4px solid #ef4444;">
+          <strong>Status:</strong> Visitor has exited the premises.
+        </p>
+      </div>
+    `;
+    await sendSecurityAlertEmail(`Visitor Checked Out: ${visitor.name}`, checkoutAlertHtml);
+
+    await createNotificationForRoles(["admin", "security"], {
+      visitorId: visitor._id,
+      type: "check-out",
+      title: "Visitor Checked Out",
+      message: `${visitor.name} has checked out. Purpose: ${visitor.purpose}`,
+      visitorName: visitor.name,
+      visitorEmail: visitor.email,
+      purpose: visitor.purpose,
+      personToMeet: visitor.personToMeet,
+    });
 
     res.status(200).json(visitor);
   } catch (error) {
@@ -412,7 +453,6 @@ export const getVisitorStats = async (req, res) => {
   }
 };
 
-// for approvals page -> when user status is approved
 export const approveVisitor = async (req, res) => {
   try {
     const visitor = await Visitor.findById(req.params.id);
@@ -421,8 +461,6 @@ export const approveVisitor = async (req, res) => {
       return res.status(404).json({ message: "Visitor not found" });
     }
 
-    // Generate QR token valid for 24 hours
-    // const { qrToken, qrTokenExpiry } = createQrForVisitor(visitor._id);
     const { qrToken, qrTokenExpiry } = createQrForVisitor(
       visitor._id,
       visitor.expectedCheckOut,
@@ -443,6 +481,34 @@ export const approveVisitor = async (req, res) => {
     const qrDataUri = await generateQrDataUri(qrToken);
     await sendVisitorApprovalEmail(updatedVisitor, qrDataUri);
 
+    const securityAlertHtml = `
+      <div style="font-family: Arial, sans-serif; color: #111;">
+        <h2>Visitor Approved - Check-In Alert</h2>
+        <p>The following visitor has been approved and may be checking in:</p>
+        <p><strong>Visitor Name:</strong> ${updatedVisitor.name}</p>
+        <p><strong>Email:</strong> ${updatedVisitor.email}</p>
+        <p><strong>Purpose:</strong> ${updatedVisitor.purpose}</p>
+        <p><strong>Person to Meet:</strong> ${updatedVisitor.personToMeet}</p>
+        <p><strong>Expected Check-in:</strong> ${updatedVisitor.expectedCheckIn ? new Date(updatedVisitor.expectedCheckIn).toLocaleString() : "N/A"}</p>
+        <p><strong>Expected Check-out:</strong> ${updatedVisitor.expectedCheckOut ? new Date(updatedVisitor.expectedCheckOut).toLocaleString() : "N/A"}</p>
+        <p style="margin-top: 20px; padding: 10px; background-color: #f0f0f0; border-left: 4px solid #10b981;">
+          <strong>Action Required:</strong> Please ensure smooth check-in process for this visitor.
+        </p>
+      </div>
+    `;
+    await sendSecurityAlertEmail(`Visitor Approved: ${updatedVisitor.name}`, securityAlertHtml);
+
+    await createNotificationForRoles(["admin", "security"], {
+      visitorId: updatedVisitor._id,
+      type: "check-in-approved",
+      title: "Visitor Approved",
+      message: `Visitor ${updatedVisitor.name} has been approved. Purpose: ${updatedVisitor.purpose}`,
+      visitorName: updatedVisitor.name,
+      visitorEmail: updatedVisitor.email,
+      purpose: updatedVisitor.purpose,
+      personToMeet: updatedVisitor.personToMeet,
+    });
+
     res.json(updatedVisitor);
   } catch (error) {
     console.error("Approval Error:", error);
@@ -450,7 +516,6 @@ export const approveVisitor = async (req, res) => {
   }
 };
 
-//when user status is rejected
 export const rejectVisitor = async (req, res) => {
   try {
     const visitor = await Visitor.findById(req.params.id);
@@ -466,6 +531,32 @@ export const rejectVisitor = async (req, res) => {
     );
 
     await sendVisitorRejectionEmail(updatedVisitor);
+
+    const rejectionAlertHtml = `
+      <div style="font-family: Arial, sans-serif; color: #111;">
+        <h2>Visitor Request Rejected</h2>
+        <p>The following visitor request has been rejected:</p>
+        <p><strong>Visitor Name:</strong> ${updatedVisitor.name}</p>
+        <p><strong>Email:</strong> ${updatedVisitor.email}</p>
+        <p><strong>Purpose:</strong> ${updatedVisitor.purpose}</p>
+        <p><strong>Person to Meet:</strong> ${updatedVisitor.personToMeet}</p>
+        <p style="margin-top: 20px; padding: 10px; background-color: #f0f0f0; border-left: 4px solid #ef4444;">
+          <strong>Status:</strong> This visitor is NOT allowed to enter the premises.
+        </p>
+      </div>
+    `;
+    await sendSecurityAlertEmail(`Visitor Rejected: ${updatedVisitor.name}`, rejectionAlertHtml);
+
+    await createNotificationForRoles(["admin", "security"], {
+      visitorId: updatedVisitor._id,
+      type: "rejection",
+      title: "Visitor Rejected",
+      message: `Visitor ${updatedVisitor.name} has been rejected. Purpose: ${updatedVisitor.purpose}`,
+      visitorName: updatedVisitor.name,
+      visitorEmail: updatedVisitor.email,
+      purpose: updatedVisitor.purpose,
+      personToMeet: updatedVisitor.personToMeet,
+    });
 
     res.json(updatedVisitor);
   } catch (error) {
@@ -486,42 +577,6 @@ export const getMyVisits = async (req, res) => {
   }
 };
 
-export const getNotifications = async (req, res) => {
-  try {
-    const visits = await Visitor.find({ userId: req.user.id })
-      .sort({ updatedAt: -1 })
-      .limit(5);
-
-    const notifications = visits.map((visit) => {
-      let message = "Visitor status updated";
-      if (visit.status === "approved")
-        message = "Your visitor request is approved.";
-      if (visit.status === "pending")
-        message = "Your visitor request is pending approval.";
-      if (visit.status === "rejected")
-        message = "Your visitor request is rejected.";
-      if (visit.status === "checked-in") message = "Visitor has checked in.";
-      if (visit.status === "checked-out") message = "Visitor has checked out.";
-
-      return {
-        id: visit._id,
-        name: visit.name,
-        purpose: visit.purpose,
-        personToMeet: visit.personToMeet,
-        status: visit.status,
-        message,
-        createdAt: visit.createdAt,
-        updatedAt: visit.updatedAt,
-      };
-    });
-
-    res.status(200).json(notifications);
-  } catch (error) {
-    console.error("Failed to fetch notifications", error);
-    res.status(500).json({ message: "Failed to fetch notifications" });
-  }
-};
-
 export const getVisitorByDate = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
@@ -534,7 +589,6 @@ export const getVisitorByDate = async (req, res) => {
 
       to.setHours(23, 59, 59, 999);
 
-      // Prevent invalid date crash
       if (!isNaN(from) && !isNaN(to)) {
         filter.createdAt = {
           $gte: from,

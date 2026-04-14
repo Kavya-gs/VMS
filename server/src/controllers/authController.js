@@ -10,8 +10,15 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    if (role && role !== "visitor") {
+      return res.status(403).json({
+        message: "Self-registration supports visitor role only",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
@@ -19,16 +26,11 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Validate role - only allow visitor, admin, security
-    const validRoles = ["visitor", "admin", "security"];
-    const userRole = role && validRoles.includes(role) ? role : "visitor";
-
-    // Create user
     const user = await User.create({
       name,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
-      role: userRole, // use provided role or default to visitor
+      role: "visitor",
     });
 
     const userObj = user.toObject();
@@ -42,6 +44,50 @@ export const register = async (req, res) => {
   } catch (error) {
     console.error("REGISTER ERROR:", error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const createStaffUser = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const allowedRoles = ["admin", "security"];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({
+        message: "Role must be either admin or security",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name,
+      email: normalizedEmail,
+      password: hashedPassword,
+      role,
+    });
+
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    return res.status(201).json({
+      message: "Staff user created successfully",
+      user: userObj,
+    });
+  } catch (error) {
+    console.error("CREATE STAFF ERROR:", error);
+    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -63,7 +109,10 @@ export const login = async (req, res) => {
     { expiresIn: "1d" }
   );
 
-  res.json({ token, user });
+  const userObj = user.toObject();
+  delete userObj.password;
+
+  res.json({ token, user: userObj });
 };
 
 export const getProfile = async( req, res) => {

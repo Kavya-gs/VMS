@@ -4,11 +4,12 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import toast from "react-hot-toast";
 import { visitorSchema } from "../../../../validations/visitorSchema";
 import API from "../../../../services/api";
+import { useAuth } from "../../../../contexts/useAuth";
 
 const CheckInPage = () => {
   const [loading, setLoading] = useState(false);
   const [hasActiveVisit, setHasActiveVisit] = useState(false);
-  const [userData, setUserData] = useState(null);
+  const { role, user } = useAuth();
 
   const {
     register,
@@ -23,74 +24,60 @@ const CheckInPage = () => {
   });
 
   useEffect(() => {
-  const role = localStorage.getItem("role");
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  console.log("ROLE:", role);
-  console.log("USER:", user);
-
-  if (role === "visitor" && user) {
-    setUserData(user);
-
-    setValue("name", user.name);
-    setValue("email", user.email);
-  }
-}, [setValue]);
+    if (role === "visitor" && user) {
+      setValue("name", user.name);
+      setValue("email", user.email);
+    }
+  }, [role, user, setValue]);
 
   useEffect(() => {
-  const checkActiveVisit = async () => {
-    try {
-      const res = await API.get("/visitors/my-visits");
+    const checkActiveVisit = async () => {
+      try {
+        const res = await API.get("/visitors/my-visits");
+        const active = res.data.find(
+          (v) => v.status === "approved" && v.checkInTime && !v.checkOutTime
+        );
 
-      const active = res.data.find(
-        (v) =>
-          v.status === "approved" &&
-          v.checkInTime &&
-          !v.checkOutTime
-      );
+        setHasActiveVisit(Boolean(active));
 
-      setHasActiveVisit(!!active);
-
-      if (active) {
-        toast.dismiss(); 
-        toast.error("Active visit found. Please checkout before new check-in.");
+        if (active) {
+          toast.dismiss();
+          toast.error("Active visit found. Please checkout before new check-in.");
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.error(err);
+    };
+
+    checkActiveVisit();
+  }, []);
+
+  const onSubmit = async (data) => {
+    if (hasActiveVisit) {
+      toast.error("Please checkout your previous visit first");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await API.post("/visitors/checkin", data);
+      toast.success("Applied for Check-In Successfully!");
+      reset({
+        name: role === "visitor" ? user?.name || "" : "",
+        email: role === "visitor" ? user?.email || "" : "",
+        purpose: "",
+        personToMeet: "",
+        expectedCheckIn: "",
+        expectedCheckOut: "",
+      });
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Error checking in visitor";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
-
-  checkActiveVisit();
-}, []);
-
-  const role = localStorage.getItem("role");
-
- 
-  const onSubmit = async (data) => {
-  if (hasActiveVisit) {
-    toast.error("Please checkout your previous visit first");
-    return;
-  }
-
-  setLoading(true);
-  try {
-    await API.post("/visitors/checkin", data);
-    toast.success("Applied for Check-In Successfully!");
-    reset({
-  name: userData?.name || "",
-  email: userData?.email || "",
-  purpose: "",
-  personToMeet: "",
-  expectedCheckIn: "",
-  expectedCheckOut: "",
-});
-  } catch (error) {
-    const errorMessage = error.response?.data?.message || "Error checking in visitor";
-    toast.error(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
 
   return (
     <div className="p-6 max-w-xl mx-auto">
@@ -99,8 +86,6 @@ const CheckInPage = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="bg-white shadow rounded p-6 space-y-4"
       >
-
-        {/* Name */}
         <div>
           <input
             type="text"
@@ -113,7 +98,6 @@ const CheckInPage = () => {
           <p className="text-rose-600 text-sm mt-1">{errors.name?.message || ""}</p>
         </div>
 
-        {/* Email */}
         <div>
           <input
             type="email"
@@ -126,7 +110,6 @@ const CheckInPage = () => {
           <p className="text-rose-600 text-sm mt-1">{errors.email?.message || ""}</p>
         </div>
 
-        {/* Purpose */}
         <div>
           <input
             type="text"
@@ -138,7 +121,6 @@ const CheckInPage = () => {
           <p className="text-rose-600 text-sm mt-1">{errors.purpose?.message || ""}</p>
         </div>
 
-        {/* Person To Meet */}
         <div>
           <input
             type="text"

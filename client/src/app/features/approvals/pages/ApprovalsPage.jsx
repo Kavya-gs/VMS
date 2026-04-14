@@ -46,10 +46,10 @@ const ApprovalsPage = () => {
   }
 
   return (
-    <div className='p-6'>
-      <h1 className='text-2xl font-bold mb-6'>Pending Visitor's Approval</h1>
-     <div className="bg-white shadow rounded-lg">
-      <table className='w-full'>
+    <div className='p-2 sm:p-4 md:p-6'>
+      <h1 className='text-xl sm:text-2xl font-bold mb-6'>Pending Visitor's Approval</h1>
+     <div className="bg-white shadow rounded-lg overflow-x-auto">
+      <table className='w-full min-w-[860px]'>
         <thead className='bg-gray-100'>
           <tr>
             <th className='p-3 text-left'>Name</th>
@@ -69,7 +69,8 @@ const ApprovalsPage = () => {
               <td className="p-3">{visitor.personToMeet}</td>
               <td className="p-3">{visitor.expectedCheckIn ? new Date(visitor.expectedCheckIn).toLocaleString("en-GB") : "-"}</td>
               <td className="p-3">{visitor.expectedCheckOut ? new Date(visitor.expectedCheckOut).toLocaleString("en-GB") : "-"}</td>
-              <td className="p-3 flex gap-2">
+              <td className="p-3">
+                <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={() => approveVisitor(visitor._id)}
                   className="bg-green-500 text-white px-3 py-1 rounded"
@@ -82,6 +83,7 @@ const ApprovalsPage = () => {
                 >
                   Reject
                 </button>
+                </div>
               </td>
             </tr>
           ))

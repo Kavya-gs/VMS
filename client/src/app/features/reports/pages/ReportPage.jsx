@@ -1,26 +1,27 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import API from "../../../../services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import toast from "react-hot-toast";
+import { useDebounce } from "../../../../hooks/useDebounce";
 
 const ReportPage = () => {
   const [visitors, setVisitors] = useState([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [loading, setLoading] = useState(false);
+  const debouncedStartDate = useDebounce(startDate, 500);
+  const debouncedEndDate = useDebounce(endDate, 500);
 
-  const hasFetched = useRef(false);
-  const intervalRef = useRef(null);
-
-  const fetchReports = async () => {
+  const fetchReports = async (options = {}) => {
     try {
-      setLoading(true);
       let res;
+      const { startDate: requestStartDate, endDate: requestEndDate } = options;
+      const activeStartDate = requestStartDate ?? debouncedStartDate;
+      const activeEndDate = requestEndDate ?? debouncedEndDate;
 
-      if (startDate && endDate) {
+      if (activeStartDate && activeEndDate) {
         res = await API.get("/visitors/reports", {
-          params: { startDate, endDate },
+          params: { startDate: activeStartDate, endDate: activeEndDate },
         });
       } else {
         res = await API.get("/visitors");
@@ -30,8 +31,6 @@ const ReportPage = () => {
     } catch (error) {
       console.error("Fetch error:", error);
       toast.error("Failed to fetch data");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -40,8 +39,10 @@ const ReportPage = () => {
   }, []);
 
   useEffect(() => {
-    if (startDate && endDate) fetchReports();
-  }, [startDate, endDate]);
+    if (debouncedStartDate && debouncedEndDate) {
+      fetchReports();
+    }
+  }, [debouncedStartDate, debouncedEndDate]);
 
   const handleFilter = () => {
     if (!startDate || !endDate) {
@@ -70,7 +71,7 @@ const ReportPage = () => {
   const clearfilter = () => {
     setStartDate("");
     setEndDate("");
-    fetchReports();
+    fetchReports({ startDate: "", endDate: "" });
   };
 
   const exportCSV = () => {
@@ -120,77 +121,72 @@ const ReportPage = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      {/* HEADER */}
+    <div className="p-2 sm:p-4 md:p-6 bg-gray-100 min-h-screen">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">Reports Dashboard</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Reports Dashboard</h1>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap w-full sm:w-auto gap-3">
           <button
             onClick={exportCSV}
-            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
+            className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
           >
             Export CSV
           </button>
 
           <button
             onClick={exportPDF}
-            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
+            className="w-full sm:w-auto bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
           >
             Export PDF
           </button>
         </div>
       </div>
 
-      {/* FILTERS */}
-      <div className="flex flex-wrap gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
         <input
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="border p-2 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none"
+          className="border p-2 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none w-full"
         />
 
         <input
           type="date"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
-          className="border p-2 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none"
+          className="border p-2 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none w-full"
         />
 
         <button
           onClick={handleFilter}
-          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
+          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5 w-full"
         >
           Filter
         </button>
 
         <button
           onClick={setToday}
-          className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
+          className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5 w-full"
         >
           Today
         </button>
 
         <button
           onClick={setLast7Days}
-          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
+          className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5 w-full"
         >
           Last 7 Days
         </button>
 
         <button
           onClick={clearfilter}
-          className="bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5"
+          className="bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white font-semibold px-5 py-2 rounded-xl shadow-md transition transform hover:-translate-y-0.5 w-full"
         >
           Clear
         </button>
       </div>
 
-      {/* DATA */}
-      {loading ? (
-        <p className="text-center text-gray-600">Loading...</p>
-      ) : visitors.length === 0 ? (
+      {visitors.length === 0 ? (
         <p className="text-center text-gray-500">No data found</p>
       ) : (
         <div className="bg-white rounded-xl shadow p-5 overflow-x-auto">
@@ -198,7 +194,7 @@ const ReportPage = () => {
             Visitor Details ({visitors.length})
           </h2>
 
-          <table className="w-full border-collapse text-left">
+          <table className="w-full min-w-[840px] border-collapse text-left">
             <thead>
               <tr className="bg-gray-100">
                 <th className="p-3">S.No</th>

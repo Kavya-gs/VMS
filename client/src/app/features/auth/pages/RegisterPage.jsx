@@ -26,7 +26,7 @@ const RegisterPage = () => {
       const { confirmPassword, ...dataToSend } = formData;
       await API.post("/auth/register", dataToSend);
       toast.success("Registration successful! Please login.");
-      navigate("/login");
+      navigate("/login?portal=visitor");
     } catch (error) {
       console.error(error);
       const errorMessage = error.response?.data?.message || "Registration failed. Please try again.";
@@ -37,57 +37,61 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50">
+    <div className="auth-shell">
       <form
         onSubmit={handleSubmit(handleRegister)}
-        className="p-6 bg-white shadow-md rounded w-96"
+        className="auth-card"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
+        <h2 className="auth-title mb-6">Create Visitor Account</h2>
 
         <div className="mb-4">
+          <label className="auth-label">Full Name</label>
           <input
             type="text"
             placeholder="Full Name"
             {...register("name")}
             disabled={loading}
             aria-invalid={errors.name ? "true" : "false"}
-            className={`w-full rounded border p-2 focus:outline-none transition ${errors.name ? "border-rose-500 focus:border-rose-500 bg-rose-50" : "border-slate-300 focus:border-green-500 bg-white"}`}
+            className={`auth-input mt-1 ${errors.name ? "border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-100" : ""}`}
           />
           {errors.name && <p className="text-rose-600 text-sm mt-1">{errors.name.message}</p>}
         </div>
 
         <div className="mb-4">
+          <label className="auth-label">Email</label>
           <input
             type="email"
             placeholder="Email"
             {...register("email")}
             disabled={loading}
             aria-invalid={errors.email ? "true" : "false"}
-            className={`w-full rounded border p-2 focus:outline-none transition ${errors.email ? "border-rose-500 focus:border-rose-500 bg-rose-50" : "border-slate-300 focus:border-green-500 bg-white"}`}
+            className={`auth-input mt-1 ${errors.email ? "border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-100" : ""}`}
           />
           {errors.email && <p className="text-rose-600 text-sm mt-1">{errors.email.message}</p>}
         </div>
 
         <div className="mb-4">
+          <label className="auth-label">Password</label>
           <input
             type="password"
             placeholder="Password (8+ chars, uppercase, lowercase, number)"
             {...register("password")}
             disabled={loading}
             aria-invalid={errors.password ? "true" : "false"}
-            className={`w-full rounded border p-2 focus:outline-none transition ${errors.password ? "border-rose-500 focus:border-rose-500 bg-rose-50" : "border-slate-300 focus:border-green-500 bg-white"}`}
+            className={`auth-input mt-1 ${errors.password ? "border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-100" : ""}`}
           />
           {errors.password && <p className="text-rose-600 text-sm mt-1">{errors.password.message}</p>}
         </div>
 
         <div className="mb-4">
+          <label className="auth-label">Confirm Password</label>
           <input
             type="password"
             placeholder="Confirm Password"
             {...register("confirmPassword")}
             disabled={loading}
             aria-invalid={errors.confirmPassword ? "true" : "false"}
-            className={`w-full rounded border p-2 focus:outline-none transition ${errors.confirmPassword ? "border-rose-500 focus:border-rose-500 bg-rose-50" : "border-slate-300 focus:border-green-500 bg-white"}`}
+            className={`auth-input mt-1 ${errors.confirmPassword ? "border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-100" : ""}`}
           />
           {errors.confirmPassword && <p className="text-rose-600 text-sm mt-1">{errors.confirmPassword.message}</p>}
         </div>
@@ -95,7 +99,7 @@ const RegisterPage = () => {
         <button 
           type="submit" 
           disabled={loading}
-          className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-4 py-2 rounded w-full font-semibold transition"
+          className="auth-btn auth-btn-success"
         >
           {loading ? "Registering..." : "Register"}
         </button>
@@ -104,9 +108,19 @@ const RegisterPage = () => {
           Already have an account?{" "}
           <span
             className="text-blue-500 cursor-pointer hover:underline"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/login?portal=visitor")}
           >
             Login
+          </span>
+        </p>
+
+        <p className="text-xs mt-2 text-center text-gray-500">
+          Need staff login?{" "}
+          <span
+            className="text-blue-500 cursor-pointer hover:underline"
+            onClick={() => navigate("/")}
+          >
+            Go to landing
           </span>
         </p>
       </form>
