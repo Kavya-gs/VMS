@@ -49,6 +49,10 @@ const ReportPage = () => {
       toast.error("Please select both dates");
       return;
     }
+    else if(newDate(endDate) < new Date(startDate)) {
+      toast.error("End date cannot be before start date");
+      return;
+    }
     fetchReports();
     toast.success("Data fetched successfully");
   };
@@ -153,6 +157,7 @@ const ReportPage = () => {
         <input
           type="date"
           value={endDate}
+          min={startDate}
           onChange={(e) => setEndDate(e.target.value)}
           className="border p-2 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none w-full"
         />
