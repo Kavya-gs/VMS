@@ -39,8 +39,8 @@ export const AuthProvider = ({ children }) => {
     fetchProfile();
   }, [fetchProfile]);
 
-  const login = useCallback(async (credentials) => {
-    const response = await API.post("/auth/login", credentials);
+  const login = useCallback(async (credentials, captchaToken) => {
+    const response = await API.post("/auth/login", { ...credentials, captchaToken });
     const nextToken = response.data?.token;
 
     if (!nextToken) {
