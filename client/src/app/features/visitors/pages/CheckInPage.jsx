@@ -170,6 +170,13 @@ const CheckInPage = () => {
     },
   });
 
+  useEffect(() => {
+    setValue("securityManual", securityManualCheckin, {
+      shouldValidate: false,
+      shouldDirty: false,
+    });
+  }, [securityManualCheckin, setValue]);
+
   const getFirstErrorMessage = () => {
     return (
       errors.name?.message ||
@@ -384,6 +391,7 @@ const CheckInPage = () => {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Schedule</p>
           <input type="hidden" {...register("expectedCheckIn")} />
           <input type="hidden" {...register("expectedCheckOut")} />
+          <input type="hidden" {...register("securityManual")} />
 
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-200 bg-white p-3">

@@ -12,12 +12,12 @@ const parseDateValue = (value) => {
 };
 
 export const visitorSchema = yup.object({
-  securityManual: yup.boolean(),
+  securityManual: yup.boolean().default(false),
 
   name: yup
     .string()
     .trim()
-    .when("securityManual", (securityManual, schema) =>
+    .when("securityManual", (securityManual = false, schema) =>
       securityManual
         ? schema.required("Visitor name is required for manual check-in")
         : schema.notRequired()
