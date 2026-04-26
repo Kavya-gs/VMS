@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import API from "../../../../services/api";
+import toast from "react-hot-toast";
 import {
   PieChart,
   Pie,
@@ -13,6 +14,8 @@ import { useAuth } from "../../../../contexts/useAuth";
 const DashboardPage = () => {
   const [visitors, setVisitors] = useState([]);
   const [stats, setStats] = useState({});
+  const [scanInput, setScanInput] = useState("");
+  const [scanLoading, setScanLoading] = useState(false);
 
   const { role, authLoading } = useAuth();
 
@@ -46,6 +49,34 @@ const DashboardPage = () => {
     fetchVisitors();
     fetchStats();
   }, []);
+
+  const handleSecurityScanCheckout = async () => {
+    if (!scanInput.trim()) {
+      toast.error("Scan input is required");
+      return;
+    }
+
+    setScanLoading(true);
+    try {
+      const payload =
+        scanInput.length > 40
+          ? { qrToken: scanInput.trim() }
+          : scanInput.toUpperCase().startsWith("VC-")
+          ? { temporaryCardId: scanInput.trim() }
+          : { visitorId: scanInput.trim() };
+
+      const response = await API.post("/visitors/checkout/security-scan", payload);
+      toast.success(response.data?.message || "Security checkout completed");
+      setScanInput("");
+      loadDashboardData();
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Security checkout failed";
+      toast.error(errorMessage);
+    } finally {
+      setScanLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (role !== "admin" && role !== "security") {
@@ -122,6 +153,35 @@ const DashboardPage = () => {
 
       {role === "security" && (
         <>
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+              Security Checkout
+            </p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-900">
+              Scan Visitor QR / Card ID
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Paste scanned QR token, temporary card ID (VC-XXXXXX), or visitor ID.
+            </p>
+
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <input
+                value={scanInput}
+                onChange={(event) => setScanInput(event.target.value)}
+                placeholder="Paste scan value here"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-500"
+              />
+              <button
+                type="button"
+                onClick={handleSecurityScanCheckout}
+                disabled={scanLoading}
+                className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:bg-slate-400"
+              >
+                {scanLoading ? "Processing..." : "Mark Checkout"}
+              </button>
+            </div>
+          </section>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <StatCard title="Visitors Today" value={visitorsToday} color="text-indigo-600" />
             <StatCard title="Inside" value={inside} color="text-green-600" />

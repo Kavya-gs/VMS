@@ -4,13 +4,15 @@ const visitorSchema = new mongoose.Schema(
     {
         name: {
             type: String,
-            required: true,
+            trim: true,
         },
         email: {
             type: String,
+            trim: true,
         },
         phone: {
             type: String,
+            trim: true,
         },
         purpose: {
             type: String,
@@ -55,7 +57,43 @@ const visitorSchema = new mongoose.Schema(
         qrTokenExpiry: {
             type: Date,
             default: null,
-        }
+        },
+        temporaryCardId: {
+            type: String,
+            default: null,
+        },
+        photo: {
+            type: String,
+            default: null,
+        },
+        cardIssuedAt: {
+            type: Date,
+            default: null,
+        },
+        checkoutAuthorizedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
+        checkoutChannel: {
+            type: String,
+            enum: ["self-service", "staff-assisted", "security-scan"],
+            default: null,
+        },
+        checkInType: {
+            type: String,
+            enum: ["self", "security", "admin"],
+            default: "self",
+        },
+        checkInApprovedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
+        otpVerified: {
+            type: Boolean,
+            default: false,
+        },
     },
     {timestamps: true}
 );

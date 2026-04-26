@@ -7,6 +7,11 @@ const notificationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    audience: {
+      type: String,
+      enum: ["staff", "visitor", "all"],
+      default: "staff",
+    },
     visitorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Visitor",
@@ -38,5 +43,6 @@ const notificationSchema = new mongoose.Schema(
 );
 
 notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
+notificationSchema.index({ userId: 1, read: 1, createdAt: -1 });
 
 export default mongoose.model("Notification", notificationSchema);

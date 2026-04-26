@@ -42,10 +42,7 @@ const Header = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
-
-    return () => clearInterval(interval);
+    fetchNotifications({ force: true });
   }, [isAuthenticated, fetchNotifications]);
 
   const handleNotificationClick = (notificationId, isRead) => {

@@ -12,6 +12,7 @@ import ProtectedRoute from './app/routes/ProtectedRoute'
 import ReportPage from './app/features/reports/pages/ReportPage'
 import VisitorDashboard from './app/features/dashboard/pages/VisitorDashboard'
 import CheckoutPage from './app/features/checkout/pages/CheckoutPage'
+import VisitorCardPage from './app/features/visitors/pages/VisitorCardPage'
 import { Toaster } from "react-hot-toast";
 import ProfilePage from './app/features/auth/pages/ProfilePage'
 import RegisterPage from './app/features/auth/pages/RegisterPage'
@@ -98,6 +99,14 @@ function App() {
                   element={
                     <RoleProtectedRoute allowedRoles={["visitor", "security"]}>
                       <CheckoutPage />
+                    </RoleProtectedRoute>
+                  }
+                />
+                <Route
+                  path="visitor-card/:id"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["visitor", "security", "admin"]}>
+                      <VisitorCardPage />
                     </RoleProtectedRoute>
                   }
                 />

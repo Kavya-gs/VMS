@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -11,6 +11,7 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
+  const captchaRef = useRef(null);
 
   const {
     register,
@@ -36,6 +37,7 @@ const RegisterPage = () => {
 
       reset();
       setCaptchaToken(null);
+      captchaRef.current?.reset();
 
       navigate("/login?portal=visitor");
     } catch (error) {
@@ -47,7 +49,8 @@ const RegisterPage = () => {
 
       toast.error(errorMessage);
 
-      setCaptchaToken(null); // reset captcha
+      setCaptchaToken(null);
+      captchaRef.current?.reset();
     } finally {
       setLoading(false);
     }
@@ -135,6 +138,7 @@ const RegisterPage = () => {
             Please verify you are not a robot
           </p>
           <ReCAPTCHA
+            ref={captchaRef}
             sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
             onChange={(token) => setCaptchaToken(token)}
           />

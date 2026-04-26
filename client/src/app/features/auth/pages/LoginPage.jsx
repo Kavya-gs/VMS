@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -11,9 +11,13 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const portal = searchParams.get("portal") || "visitor";
-  const { login } = useAuth();
+  const { login, verifyOtp } = useAuth();
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
+  const [authStage, setAuthStage] = useState("credentials");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const captchaRef = useRef(null);
 
   const {
     register,
@@ -27,7 +31,14 @@ const LoginPage = () => {
   const handleLogin = async (formData) => {
     setLoading(true);
     try {
-      await login(formData, captchaToken, portal);
+      const loginResult = await login(formData, captchaToken, portal);
+
+      if (loginResult?.otpRequired) {
+        setPendingEmail(loginResult.email || formData.email);
+        setAuthStage("otp");
+        toast.success("OTP sent to your email");
+        return;
+      }
 
       toast.success("Login successful!");
       navigate("/dashboard");
@@ -38,7 +49,23 @@ const LoginPage = () => {
         error.response?.data?.message || "Login failed. Please try again.";
 
       toast.error(errorMessage);
-      setCaptchaToken(null); // reset captcha 
+      setCaptchaToken(null);
+      captchaRef.current?.reset();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setLoading(true);
+    try {
+      await verifyOtp({ email: pendingEmail, otp: otp.trim() });
+      toast.success("Login successful!");
+      navigate("/dashboard");
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "OTP verification failed. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -55,56 +82,103 @@ const LoginPage = () => {
             : "Visitor Portal"}
         </p>
 
-        <div className="mb-4">
-          <label className="auth-label">Email</label>
-          <input
-            type="email"
-            placeholder="Email"
-            {...register("email")}
-            disabled={loading}
-            className={`auth-input mt-1 ${
-              errors.email ? "border-rose-500 bg-rose-50" : ""
-            }`}
-          />
-          {errors.email && (
-            <p className="text-rose-600 text-sm mt-1">
-              {errors.email.message}
-            </p>
-          )}
-        </div>
+        {authStage === "credentials" ? (
+          <>
+            <div className="mb-4">
+              <label className="auth-label">Email</label>
+              <input
+                type="email"
+                placeholder="Email"
+                {...register("email")}
+                disabled={loading}
+                className={`auth-input mt-1 ${
+                  errors.email ? "border-rose-500 bg-rose-50" : ""
+                }`}
+              />
+              {errors.email && (
+                <p className="text-rose-600 text-sm mt-1">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
 
-        <div className="mb-4">
-          <label className="auth-label">Password</label>
-          <input
-            type="password"
-            placeholder="Password"
-            {...register("password")}
-            disabled={loading}
-            className={`auth-input mt-1 ${
-              errors.password ? "border-rose-500 bg-rose-50" : ""
-            }`}
-          />
-          {errors.password && (
-            <p className="text-rose-600 text-sm mt-1">
-              {errors.password.message}
-            </p>
-          )}
-        </div>
+            <div className="mb-4">
+              <label className="auth-label">Password</label>
+              <input
+                type="password"
+                placeholder="Password"
+                {...register("password")}
+                disabled={loading}
+                className={`auth-input mt-1 ${
+                  errors.password ? "border-rose-500 bg-rose-50" : ""
+                }`}
+              />
+              {errors.password && (
+                <p className="text-rose-600 text-sm mt-1">
+                  {errors.password.message}
+                </p>
+              )}
+            </div>
 
-        <div className="flex justify-center my-4">
-          <ReCAPTCHA
-            sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-            onChange={(token) => setCaptchaToken(token)}
-          />
-        </div>
+            <div className="flex justify-center my-4">
+              <ReCAPTCHA
+                ref={captchaRef}
+                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                onChange={(token) => setCaptchaToken(token)}
+              />
+            </div>
 
-        <button
-          type="submit"
-          disabled={loading || !isValid || !captchaToken}
-          className="auth-btn auth-btn-primary"
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
+            <button
+              type="submit"
+              disabled={loading || !isValid || !captchaToken}
+              className="auth-btn auth-btn-primary"
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-sm text-indigo-800">
+              OTP sent to <span className="font-semibold">{pendingEmail}</span>
+            </div>
+
+            <div className="mb-4">
+              <label className="auth-label">Enter OTP</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="6-digit OTP"
+                value={otp}
+                onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
+                disabled={loading}
+                className="auth-input mt-1 tracking-[0.35em] text-center"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleVerifyOtp}
+              disabled={loading || otp.length !== 6}
+              className="auth-btn auth-btn-primary"
+            >
+              {loading ? "Verifying..." : "Verify OTP"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAuthStage("credentials");
+                setOtp("");
+                setCaptchaToken(null);
+                captchaRef.current?.reset();
+              }}
+              className="mt-3 w-full rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Back to credentials
+            </button>
+          </>
+        )}
 
         {/* LINKS */}
         <p className="text-sm mt-4 text-center text-gray-600">

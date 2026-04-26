@@ -7,10 +7,26 @@ const userSchema = new mongoose.Schema({
     unique: true,
   },
   password: String,
+  phone: {
+    type: String,
+    default: null,
+  },
   role: {
     type: String,
     enum: ["admin", "security", "visitor"],
     default: "visitor",
+  },
+  otpCodeHash: {
+    type: String,
+    default: null,
+  },
+  otpExpiresAt: {
+    type: Date,
+    default: null,
+  },
+  otpRequestedAt: {
+    type: Date,
+    default: null,
   },
 });
 

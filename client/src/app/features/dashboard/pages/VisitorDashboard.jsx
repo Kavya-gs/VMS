@@ -35,12 +35,12 @@ const VisitorDashboard = () => {
   const handleCheckout = async (id) => {
     setCheckingOutId(id);
     try {
-      await API.put(`/visitors/checkout/${id}`);
-      toast.success("Checkout successful!");
+      await API.post(`/visitors/request-checkout/${id}`);
+      toast.success("Checkout request sent to security for approval!");
       fetchVisitors();
     } catch (error) {
       const errorMessage =
-        error.response?.data?.message || "Checkout failed";
+        error.response?.data?.message || "Checkout request failed";
       toast.error(errorMessage);
     } finally {
       setCheckingOutId(null);
@@ -96,6 +96,13 @@ const VisitorDashboard = () => {
 
             <p><strong>Purpose:</strong> {currentVisit.purpose}</p>
             <p><strong>Host:</strong> {currentVisit.personToMeet}</p>
+            {currentVisit.photo && (
+              <img
+                src={currentVisit.photo}
+                alt="Visitor"
+                className="mt-4 rounded-lg w-32 h-36 object-cover border border-slate-200"
+              />
+            )}
           </div>
 
           <div className="w-full lg:w-auto text-center flex flex-col items-center">
@@ -150,6 +157,14 @@ const VisitorDashboard = () => {
                         qrExpiresAt - currentTime
                       )}`}
                 </p>
+
+                <button
+                  onClick={() => handleCheckout(currentVisit._id)}
+                  disabled={checkingOutId === currentVisit._id}
+                  className="mt-4 w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-semibold transition"
+                >
+                  {checkingOutId === currentVisit._id ? "Processing..." : "Request Checkout"}
+                </button>
               </>
             ) : (
               <p className="text-red-500 text-sm">
@@ -160,12 +175,22 @@ const VisitorDashboard = () => {
         </div>
       )}
 
-      <button
-        onClick={() => navigate("/checkin")}
-        className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-      >
-        Request Visit
-      </button>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={() => navigate("/checkin")}
+          className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+        >
+          Request Visit
+        </button>
+        {currentVisit?.temporaryCardId && (
+          <button
+            onClick={() => navigate(`/visitor-card/${currentVisit._id}`)}
+            className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg"
+          >
+            View Visitor ID Card
+          </button>
+        )}
+      </div>
 
       <div className="bg-white shadow-lg rounded-xl p-4 sm:p-6">
         <h2 className="text-lg font-semibold mb-4">My Visits</h2>
@@ -177,48 +202,12 @@ const VisitorDashboard = () => {
                 <th className="p-2 border">Date</th>
                 <th className="p-2 border">Purpose</th>
                 <th className="p-2 border">Host</th>
-                <th className="p-2 border">Status</th>
-                <th className="p-2 border">Checked Out</th>
               </tr>
             </thead>
 
             <tbody>
               {visits.length > 0 ? (
                 visits.map((visit) => {
-                  let statusBadge;
-
-                  if (visit.status === "rejected") {
-                    statusBadge = (
-                      <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-sm">
-                        Rejected
-                      </span>
-                    );
-                  } else if (visit.checkOutTime) {
-                    statusBadge = (
-                      <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-sm">
-                        Checked Out
-                      </span>
-                    );
-                  } else if (visit.status === "approved" && visit.checkInTime) {
-                    statusBadge = (
-                      <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-sm">
-                        Inside
-                      </span>
-                    );
-                  } else if (visit.status === "approved") {
-                    statusBadge = (
-                      <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm">
-                        Approved
-                      </span>
-                    );
-                  } else {
-                    statusBadge = (
-                      <span className="bg-yellow-100 text-yellow-600 px-2 py-1 rounded text-sm">
-                        Pending
-                      </span>
-                    );
-                  }
-
                   return (
                     <tr key={visit._id} className="text-center">
                       <td className="p-2 border">
@@ -226,31 +215,12 @@ const VisitorDashboard = () => {
                       </td>
                       <td className="p-2 border">{visit.purpose}</td>
                       <td className="p-2 border">{visit.personToMeet}</td>
-                      <td className="p-2 border">{statusBadge}</td>
-
-                      <td className="p-2 border">
-                        {visit.status === "rejected" ? (
-                          "N/A"
-                        ) : visit.checkOutTime ? (
-                          new Date(visit.checkOutTime).toLocaleString("en-IN")
-                        ) : visit.status === "approved" ? (
-                          <button
-                            onClick={() => handleCheckout(visit._id)}
-                            disabled={checkingOutId === visit._id}
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-                          >
-                            {checkingOutId === visit._id ? "Checking..." : "Checkout"}
-                          </button>
-                        ) : (
-                          <span className="text-gray-500">Pending Approval</span>
-                        )}
-                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan="5" className="p-4 text-center text-gray-500">
+                  <td colSpan="3" className="p-4 text-center text-gray-500">
                     No visits found
                   </td>
                 </tr>

@@ -4,8 +4,9 @@ import app from "./src/app.js";
 import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/authRoutes.js";
 import { scanExpiredVisitsAndNotify } from "./src/controllers/visitor.controller.js";
+import dotenv from "dotenv";
 
-// dotenv.config();
+dotenv.config();
 connectDB();
 
 app.use("/api/auth", authRoutes);

@@ -71,6 +71,7 @@ const CheckoutPage = () => {
               visitors.filter((v) => v.status === "approved" && !v.checkOutTime).map((v) => {
                 const expired = v.qrTokenExpiry && new Date() > new Date(v.qrTokenExpiry);
                 const notActive = v.expectedCheckIn && new Date() < new Date(v.expectedCheckIn);
+                const hostName = v.hostName || v.personToMeet || "Unassigned";
 
                 return (
                   <div key={v._id} className="border bg-white p-4 mb-3 rounded-lg hover:shadow-md transition">
@@ -78,7 +79,7 @@ const CheckoutPage = () => {
                       <div>
                         <p className="font-semibold">{v.name}</p>
                         <p className="text-sm text-gray-600">Purpose: {v.purpose}</p>
-                        <p className="text-sm text-gray-600">Host: {v.personToMeet}</p>
+                        <p className="text-sm text-gray-600">Host: {hostName}</p>
                         <p className="text-xs text-gray-500 mt-1">
                           Requested check-in: {new Date(v.expectedCheckIn).toLocaleString()}
                         </p>

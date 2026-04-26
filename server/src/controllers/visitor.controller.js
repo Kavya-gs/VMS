@@ -3,7 +3,10 @@ import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 import sgMail from "@sendgrid/mail";
 import QRCode from "qrcode";
-import { createNotificationForRoles } from "./notifications.controller.js";
+import PDFDocument from "pdfkit";
+import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
+import { createNotificationForRoles, createNotificationForUser } from "./notifications.controller.js";
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 const sendEmail = async (to, subject, html, attachments = []) => {
@@ -17,9 +20,9 @@ const sendEmail = async (to, subject, html, attachments = []) => {
       attachments: attachments.map((att) => ({
         content: att.content,
         filename: att.filename,
-        type: "image/png",
-        disposition: "inline",
-        content_id: att.cid, 
+        type: att.type || "application/octet-stream",
+        disposition: att.disposition || "attachment",
+        content_id: att.cid,
       })),
     };
 
@@ -33,7 +36,196 @@ const sendEmail = async (to, subject, html, attachments = []) => {
   }
 };
 
+const OTP_EXPIRY_MS = 5 * 60 * 1000;
+
+const generateRandomPassword = () => {
+  return crypto.randomBytes(5).toString("hex");
+};
+
+const generateOtpCode = () => {
+  return `${Math.floor(100000 + Math.random() * 900000)}`;
+};
+
+const sendVisitorCredentialsEmail = async (visitor, password, otp) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #111;">
+      <h2>Visitor Login Credentials</h2>
+      <p>Dear ${visitor.name || "Visitor"},</p>
+      <p>Your visit has been manually checked in by our security team.</p>
+      <p><strong>Email:</strong> ${visitor.email}</p>
+      <p><strong>Password:</strong> ${password}</p>
+      <p><strong>OTP:</strong> ${otp}</p>
+      <p>You can use these credentials to log in to the Visitor Management System.</p>
+      <p>The OTP expires in 5 minutes.</p>
+    </div>
+  `;
+
+  return await sendEmail(visitor.email, "Your VMS login credentials", html);
+};
+
 const QR_SECRET = process.env.QR_SECRET || "qr-secret-key";
+
+const OBJECT_ID_REGEX = /^[a-fA-F0-9]{24}$/;
+
+const isObjectIdString = (value) =>
+  typeof value === "string" && OBJECT_ID_REGEX.test(value);
+
+const dataUriToBuffer = (dataUri) => {
+  if (!dataUri || typeof dataUri !== "string") return null;
+  const parts = dataUri.split("base64,");
+  if (parts.length < 2) return null;
+  return Buffer.from(parts[1], "base64");
+};
+
+const generateVisitorCardPdfBase64 = async (visitor, qrDataUri) => {
+  return await new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: "A4", margin: 40 });
+      const chunks = [];
+
+      doc.on("data", (chunk) => chunks.push(chunk));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        resolve(pdfBuffer.toString("base64"));
+      });
+      doc.on("error", reject);
+
+      doc.roundedRect(30, 30, 535, 760, 16).fillAndStroke("#f8fafc", "#e2e8f0");
+      doc.fillColor("#0f172a").fontSize(22).text("Visitor ID Card", 55, 60);
+
+      doc.fillColor("#334155").fontSize(12);
+      doc.text(`Name: ${visitor.name || "N/A"}`, 55, 110);
+      doc.text(`Email: ${visitor.email || "N/A"}`, 55, 132);
+      doc.text(`Purpose: ${visitor.purpose || "N/A"}`, 55, 154);
+      doc.text(`Host: ${visitor.hostName || visitor.personToMeet || "N/A"}`, 55, 176);
+      doc.text(`Card ID: ${visitor.temporaryCardId || "TBD"}`, 55, 198);
+      doc.text(
+        `Valid until: ${visitor.expectedCheckOut ? new Date(visitor.expectedCheckOut).toLocaleString() : "N/A"}`,
+        55,
+        220,
+      );
+
+      const photoBuffer = dataUriToBuffer(visitor.photo);
+      if (photoBuffer) {
+        doc.image(photoBuffer, 380, 90, {
+          width: 140,
+          height: 180,
+          fit: [140, 180],
+          align: "center",
+          valign: "center",
+        });
+      } else {
+        doc.rect(380, 90, 140, 180).stroke("#94a3b8");
+        doc.fillColor("#64748b").fontSize(10).text("Photo pending", 418, 175);
+      }
+
+      const qrBuffer = dataUriToBuffer(qrDataUri);
+      if (qrBuffer) {
+        doc.image(qrBuffer, 55, 300, {
+          width: 130,
+          height: 130,
+        });
+        doc.fillColor("#475569").fontSize(10).text("Scan at security gate", 55, 436);
+      }
+
+      doc.fontSize(11).fillColor("#1e293b").text(
+        "This ID card is issued by Visitor Management System. Please carry this document during the visit.",
+        55,
+        470,
+        { width: 470, lineGap: 4 },
+      );
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+const attachHostName = async (visitor) => {
+  if (!visitor) return visitor;
+
+  const plainVisitor = typeof visitor.toObject === "function" ? visitor.toObject() : { ...visitor };
+  const hostRaw = plainVisitor.personToMeet;
+
+  if (!hostRaw) {
+    return { ...plainVisitor, hostName: "Unassigned" };
+  }
+
+  if (isObjectIdString(hostRaw)) {
+    const hostUser = await User.findById(hostRaw).select("name");
+    return {
+      ...plainVisitor,
+      hostName: hostUser?.name || hostRaw,
+    };
+  }
+
+  return {
+    ...plainVisitor,
+    hostName: hostRaw,
+  };
+};
+
+const attachHostNames = async (visitors = []) => {
+  if (visitors.length === 0) return visitors;
+
+  const plainVisitors = visitors.map((visitor) =>
+    typeof visitor.toObject === "function" ? visitor.toObject() : { ...visitor }
+  );
+
+  const hostIds = [
+    ...new Set(
+      plainVisitors
+        .map((visitor) => visitor.personToMeet)
+        .filter((value) => isObjectIdString(value))
+    ),
+  ];
+
+  let hostMap = new Map();
+  if (hostIds.length > 0) {
+    const hostUsers = await User.find({ _id: { $in: hostIds } }).select("_id name");
+    hostMap = new Map(hostUsers.map((hostUser) => [hostUser._id.toString(), hostUser.name]));
+  }
+
+  return plainVisitors.map((visitor) => ({
+    ...visitor,
+    hostName: isObjectIdString(visitor.personToMeet)
+      ? hostMap.get(visitor.personToMeet) || visitor.personToMeet
+      : visitor.personToMeet || "Unassigned",
+  }));
+};
+
+const finalizeCheckout = async ({ visitor, actor, checkoutChannel }) => {
+  visitor.checkOutTime = new Date();
+  visitor.status = "checked-out";
+  visitor.checkoutAuthorizedBy = actor.id;
+  visitor.checkoutChannel = checkoutChannel;
+
+  await visitor.save();
+  await sendVisitorCheckOutEmail(visitor);
+
+  await createNotificationForRoles(["admin", "security"], {
+    visitorId: visitor._id,
+    type: "check-out",
+    title: "Visitor Checked Out",
+    message: `${visitor.name} has checked out. Purpose: ${visitor.purpose}`,
+    visitorName: visitor.name,
+    visitorEmail: visitor.email,
+    purpose: visitor.purpose,
+    personToMeet: visitor.personToMeet,
+  });
+
+  await createNotificationForUser(visitor.userId, {
+    visitorId: visitor._id,
+    type: "check-out",
+    title: "Checkout Confirmed",
+    message: `You have been checked out successfully at ${new Date(visitor.checkOutTime).toLocaleString()}.`,
+    visitorName: visitor.name,
+    visitorEmail: visitor.email,
+    purpose: visitor.purpose,
+    personToMeet: visitor.personToMeet,
+  });
+};
 
 const generateQrDataUri = async (value) => {
   try {
@@ -63,6 +255,10 @@ const createQrForVisitor = (visitorId, expectedCheckOut) => {
     qrToken,
     qrTokenExpiry: expiryTime,
   };
+};
+
+const generateTemporaryCardId = () => {
+  return `VC-${Math.floor(100000 + Math.random() * 900000)}`;
 };
 
 const getSecurityEmails = async () => {
@@ -106,6 +302,7 @@ const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
       return;
     }
 
+    const enrichedVisitor = await attachHostName(visitor);
     let attachments = [];
     let qrImgTag = "<p>Your QR code is available in the app.</p>";
 
@@ -116,7 +313,8 @@ const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
         attachments.push({
           filename: "qrcode.png",
           content: base64Data,
-          encoding: "base64",
+          type: "image/png",
+          disposition: "inline",
           cid: "qrcode",
         });
 
@@ -129,12 +327,24 @@ const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
       }
     }
 
+    try {
+      const cardPdfBase64 = await generateVisitorCardPdfBase64(enrichedVisitor, qrDataUri);
+      attachments.push({
+        filename: `visitor-id-card-${visitor.temporaryCardId || visitor._id}.pdf`,
+        content: cardPdfBase64,
+        type: "application/pdf",
+        disposition: "attachment",
+      });
+    } catch (pdfError) {
+      console.error("Visitor ID card PDF generation failed:", pdfError);
+    }
+
     const html = `
       <div style="font-family: Arial, sans-serif; color: #111;">
         <h2>Visitor Approved</h2>
         <p>Your visitor request for <strong>${visitor.name}</strong> has been approved.</p>
         <p><strong>Purpose:</strong> ${visitor.purpose}</p>
-        <p><strong>Host:</strong> ${visitor.personToMeet}</p>
+        <p><strong>Host:</strong> ${enrichedVisitor.hostName || visitor.personToMeet}</p>
         <p><strong>Expected check-in:</strong> ${
           visitor.expectedCheckIn
             ? new Date(visitor.expectedCheckIn).toLocaleString()
@@ -146,13 +356,13 @@ const sendVisitorApprovalEmail = async (visitor, qrDataUri) => {
             : "N/A"
         }</p>
         ${qrImgTag}
-        <p>Present this QR code at the gate when checking in.</p>
+        <p>Your Visitor ID card is attached as a PDF for quick access at the gate.</p>
       </div>
     `;
 
     const success = await sendEmail(
       visitor.email,
-      "Visitor Approved - QR Code",
+      "Visitor Approved - ID Card Attached",
       html,
       attachments,
     );
@@ -276,14 +486,95 @@ export const createVisitor = async (req, res) => {
       });
     }
 
+    const normalizedName = req.body.name?.trim() || req.user.name || "Guest Visitor";
+    const normalizedEmail = (req.body.email || req.user.email || "").trim().toLowerCase();
+    let visitorUserId = req.user.id;
+
+    if (req.user.role === "security" || req.user.role === "admin") {
+      if (!normalizedEmail) {
+        return res.status(400).json({
+          message: "Visitor email is required for manual check-in.",
+        });
+      }
+
+      let visitorUser = await User.findOne({ email: normalizedEmail });
+
+      if (visitorUser && visitorUser.role !== "visitor") {
+        return res.status(400).json({
+          message: "The provided email belongs to a staff account. Use a visitor email.",
+        });
+      }
+
+      let generatedPassword = null;
+
+      if (!visitorUser) {
+        generatedPassword = generateRandomPassword();
+        const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+
+        visitorUser = await User.create({
+          name: normalizedName,
+          email: normalizedEmail,
+          password: hashedPassword,
+          role: "visitor",
+        });
+      } else {
+        if (!visitorUser.password) {
+          generatedPassword = generateRandomPassword();
+          visitorUser.password = await bcrypt.hash(generatedPassword, 10);
+        }
+        visitorUser.name = normalizedName;
+        await visitorUser.save();
+      }
+
+      const otp = generateOtpCode();
+      const otpHash = await bcrypt.hash(otp, 10);
+      visitorUser.otpCodeHash = otpHash;
+      visitorUser.otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+      visitorUser.otpRequestedAt = new Date();
+      await visitorUser.save();
+
+      const visitorCredentialsSent = await sendVisitorCredentialsEmail(
+        { name: normalizedName, email: normalizedEmail },
+        generatedPassword || "(your existing password)",
+        otp,
+      );
+
+      if (!visitorCredentialsSent) {
+        return res.status(500).json({
+          message: "Failed to send visitor credentials email. Please verify email settings and retry.",
+        });
+      }
+
+      visitorUserId = visitorUser._id;
+    }
+
+    const checkInType =
+      req.user.role === "security"
+        ? "security"
+        : req.user.role === "admin"
+          ? "admin"
+          : "self";
+
     const visitor = await Visitor.create({
       ...req.body,
-      userId: req.user.id,
+      name: normalizedName,
+      email: normalizedEmail,
+      userId: visitorUserId,
       status: defaultStatus,
-
+      temporaryCardId:
+        defaultStatus === "approved"
+          ? generateTemporaryCardId()
+          : null,
+      photo: null,
+      cardIssuedAt: null,
       checkInTime:
         req.user.role === "security" || req.user.role === "admin"
           ? new Date()
+          : null,
+      checkInType,
+      checkInApprovedBy:
+        req.user.role === "security" || req.user.role === "admin"
+          ? req.user.id
           : null,
     });
 
@@ -299,9 +590,6 @@ export const createVisitor = async (req, res) => {
 
       await visitor.save();
 
-      const qrDataUri = await generateQrDataUri(qrToken);
-      await sendVisitorApprovalEmail(visitor, qrDataUri);
-
       if (req.user.role === "security" || req.user.role === "admin") {
         await createNotificationForRoles(["admin"], {
           visitorId: visitor._id,
@@ -314,6 +602,8 @@ export const createVisitor = async (req, res) => {
           personToMeet: visitor.personToMeet,
         });
       }
+
+      // Final ID card and appointment email will be sent after visitor photo is captured.
     } else {
       await createNotificationForRoles(["admin"], {
         visitorId: visitor._id,
@@ -325,9 +615,21 @@ export const createVisitor = async (req, res) => {
         purpose: visitor.purpose,
         personToMeet: visitor.personToMeet,
       });
+
+      await createNotificationForUser(visitor.userId, {
+        visitorId: visitor._id,
+        type: "check-in-request",
+        title: "Visit Request Submitted",
+        message: `Your visit request for ${visitor.purpose} has been submitted for approval.`,
+        visitorName: visitor.name,
+        visitorEmail: visitor.email,
+        purpose: visitor.purpose,
+        personToMeet: visitor.personToMeet,
+      });
     }
 
-    res.status(201).json(visitor);
+    const visitorWithHost = await attachHostName(visitor);
+    res.status(201).json(visitorWithHost);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -336,7 +638,8 @@ export const createVisitor = async (req, res) => {
 export const getVisitors = async (req, res) => {
   try {
     const visitors = await Visitor.find().sort({ createdAt: -1 });
-    res.status(200).json(visitors);
+    const withHostNames = await attachHostNames(visitors);
+    res.status(200).json(withHostNames);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -380,11 +683,11 @@ export const checkoutVisitor = async (req, res) => {
       });
     }
 
-    visitor.checkOutTime = new Date();
-    visitor.status = "checked-out";
-
-    await visitor.save();
-    await sendVisitorCheckOutEmail(visitor);
+    await finalizeCheckout({
+      visitor,
+      actor: req.user,
+      checkoutChannel: isPrivileged ? "staff-assisted" : "self-service",
+    });
 
     const checkoutAlertHtml = `
       <div style="font-family: Arial, sans-serif; color: #111;">
@@ -403,18 +706,8 @@ export const checkoutVisitor = async (req, res) => {
     `;
     await sendSecurityAlertEmail(`Visitor Checked Out: ${visitor.name}`, checkoutAlertHtml);
 
-    await createNotificationForRoles(["admin", "security"], {
-      visitorId: visitor._id,
-      type: "check-out",
-      title: "Visitor Checked Out",
-      message: `${visitor.name} has checked out. Purpose: ${visitor.purpose}`,
-      visitorName: visitor.name,
-      visitorEmail: visitor.email,
-      purpose: visitor.purpose,
-      personToMeet: visitor.personToMeet,
-    });
-
-    res.status(200).json(visitor);
+    const visitorWithHost = await attachHostName(visitor);
+    res.status(200).json(visitorWithHost);
   } catch (error) {
     console.error("Checkout Error:", error);
 
@@ -422,6 +715,114 @@ export const checkoutVisitor = async (req, res) => {
       message: "Checkout failed",
       error: error.message,
     });
+  }
+};
+
+export const requestCheckout = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const visitor = await Visitor.findById(id);
+
+    if (!visitor) {
+      return res.status(404).json({ message: "Visitor not found" });
+    }
+
+    if (visitor.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    if (visitor.status !== "approved") {
+      return res
+        .status(400)
+        .json({ message: "Visitor must be approved for checkout" });
+    }
+
+    if (!visitor.checkInTime) {
+      return res
+        .status(400)
+        .json({ message: "Visitor has not checked in yet" });
+    }
+
+    if (visitor.checkOutTime) {
+      return res
+        .status(400)
+        .json({ message: "Visitor has already checked out" });
+    }
+
+    // Create a notification for security team to approve checkout
+    await createNotificationForRoles(["security"], {
+      visitorId: visitor._id,
+      type: "checkout-request",
+      title: "Checkout Request",
+      message: `${visitor.name} has requested checkout approval. Checked in since ${new Date(visitor.checkInTime).toLocaleString()}`,
+      visitorName: visitor.name,
+      visitorEmail: visitor.email,
+      purpose: visitor.purpose,
+      personToMeet: visitor.personToMeet,
+    });
+
+    res.status(200).json({
+      message: "Checkout request sent to security for approval"
+    });
+  } catch (error) {
+    console.error("Checkout request error:", error);
+    res.status(500).json({
+      message: "Failed to send checkout request",
+      error: error.message,
+    });
+  }
+};
+
+export const securityCheckoutVisitor = async (req, res) => {
+  try {
+    const { qrToken, temporaryCardId, visitorId } = req.body;
+
+    let resolvedVisitorId = visitorId || null;
+
+    if (!resolvedVisitorId && qrToken) {
+      try {
+        const decoded = jwt.verify(qrToken, QR_SECRET);
+        resolvedVisitorId = decoded.visitorId;
+      } catch (tokenError) {
+        const decoded = jwt.decode(qrToken);
+        if (decoded?.visitorId) {
+          resolvedVisitorId = decoded.visitorId;
+        }
+      }
+    }
+
+    let visitor = null;
+
+    if (resolvedVisitorId) {
+      visitor = await Visitor.findById(resolvedVisitorId);
+    } else if (temporaryCardId) {
+      visitor = await Visitor.findOne({ temporaryCardId: temporaryCardId.trim() });
+    }
+
+    if (!visitor) {
+      return res.status(404).json({ message: "Visitor not found for the scanned input." });
+    }
+
+    if (visitor.status !== "approved") {
+      return res.status(400).json({ message: "Visitor is not currently eligible for checkout." });
+    }
+
+    await finalizeCheckout({
+      visitor,
+      actor: req.user,
+      checkoutChannel: "security-scan",
+    });
+
+    const visitorWithHost = await attachHostName(visitor);
+
+    res.status(200).json({
+      message: "Security checkout completed.",
+      visitor: visitorWithHost,
+    });
+  } catch (error) {
+    console.error("Security checkout error:", error);
+    res.status(500).json({ message: "Security checkout failed" });
   }
 };
 
@@ -466,6 +867,8 @@ export const approveVisitor = async (req, res) => {
       visitor.expectedCheckOut,
     );
 
+    const temporaryCardId = visitor.temporaryCardId || generateTemporaryCardId();
+
     const updatedVisitor = await Visitor.findByIdAndUpdate(
       req.params.id,
       {
@@ -474,6 +877,7 @@ export const approveVisitor = async (req, res) => {
         qrTokenExpiry,
         expiryNotified: false,
         checkInTime: new Date(),
+        temporaryCardId,
       },
       { returnDocument: "after" },
     );
@@ -509,10 +913,108 @@ export const approveVisitor = async (req, res) => {
       personToMeet: updatedVisitor.personToMeet,
     });
 
-    res.json(updatedVisitor);
+    await createNotificationForUser(updatedVisitor.userId, {
+      visitorId: updatedVisitor._id,
+      type: "check-in-approved",
+      title: "Visit Approved",
+      message: `Your visit request has been approved for ${updatedVisitor.purpose}.`,
+      visitorName: updatedVisitor.name,
+      visitorEmail: updatedVisitor.email,
+      purpose: updatedVisitor.purpose,
+      personToMeet: updatedVisitor.personToMeet,
+    });
+
+    const visitorWithHost = await attachHostName(updatedVisitor);
+    res.json(visitorWithHost);
   } catch (error) {
     console.error("Approval Error:", error);
     res.status(500).json({ message: "Error approving visitor" });
+  }
+};
+
+export const uploadVisitorPhoto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { photo } = req.body;
+
+    if (!photo || typeof photo !== "string") {
+      return res.status(400).json({ message: "Photo is required." });
+    }
+
+    const visitor = await Visitor.findById(id);
+
+    if (!visitor) {
+      return res.status(404).json({ message: "Visitor not found" });
+    }
+
+    const isOwner = visitor.userId?.toString() === req.user.id;
+    const isPrivileged = req.user.role === "security" || req.user.role === "admin";
+
+    if (!isPrivileged && !isOwner) {
+      return res.status(403).json({ message: "Not allowed to upload photo for this visitor." });
+    }
+
+    visitor.photo = photo;
+    visitor.cardIssuedAt = new Date();
+
+    if (!visitor.qrToken || !visitor.qrTokenExpiry) {
+      const { qrToken, qrTokenExpiry } = createQrForVisitor(
+        visitor._id,
+        visitor.expectedCheckOut,
+      );
+      visitor.qrToken = qrToken;
+      visitor.qrTokenExpiry = qrTokenExpiry;
+    }
+
+    if (!visitor.temporaryCardId) {
+      visitor.temporaryCardId = generateTemporaryCardId();
+    }
+
+    await visitor.save();
+
+    const qrDataUri = visitor.qrToken ? await generateQrDataUri(visitor.qrToken) : null;
+    if (visitor.status === "approved") {
+      await sendVisitorApprovalEmail(visitor, qrDataUri);
+      await createNotificationForUser(visitor.userId, {
+        visitorId: visitor._id,
+        type: "check-in-approved",
+        title: "Your Visitor ID Card is Ready",
+        message: `Your visitor ID card and appointment details have been emailed to you.`,
+        visitorName: visitor.name,
+        visitorEmail: visitor.email,
+        purpose: visitor.purpose,
+        personToMeet: visitor.personToMeet,
+      });
+    }
+
+    const visitorWithHost = await attachHostName(visitor);
+    res.status(200).json(visitorWithHost);
+  } catch (error) {
+    console.error("Photo upload error:", error);
+    res.status(500).json({ message: "Failed to upload visitor photo." });
+  }
+};
+
+export const getVisitorById = async (req, res) => {
+  try {
+    const visitor = await Visitor.findById(req.params.id);
+
+    if (!visitor) {
+      return res.status(404).json({ message: "Visitor not found" });
+    }
+
+    if (
+      req.user.role === "visitor" &&
+      visitor.userId?.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    const visitorWithHost = await attachHostName(visitor);
+    res.status(200).json(visitorWithHost);
+  } catch (error) {
+    console.error("Get visitor error:", error);
+    res.status(500).json({ message: "Error fetching visitor." });
   }
 };
 
@@ -558,7 +1060,19 @@ export const rejectVisitor = async (req, res) => {
       personToMeet: updatedVisitor.personToMeet,
     });
 
-    res.json(updatedVisitor);
+    await createNotificationForUser(updatedVisitor.userId, {
+      visitorId: updatedVisitor._id,
+      type: "rejection",
+      title: "Visit Rejected",
+      message: `Your visit request for ${updatedVisitor.purpose} was rejected.`,
+      visitorName: updatedVisitor.name,
+      visitorEmail: updatedVisitor.email,
+      purpose: updatedVisitor.purpose,
+      personToMeet: updatedVisitor.personToMeet,
+    });
+
+    const visitorWithHost = await attachHostName(updatedVisitor);
+    res.json(visitorWithHost);
   } catch (error) {
     console.error("Rejection Error:", error);
     res.status(500).json({ message: "Error rejecting visitor" });
@@ -570,8 +1084,8 @@ export const getMyVisits = async (req, res) => {
     const visits = await Visitor.find({ userId: req.user.id }).sort({
       createdAt: -1,
     });
-
-    res.json(visits);
+    const withHostNames = await attachHostNames(visits);
+    res.json(withHostNames);
   } catch (error) {
     res.status(500).json({ message: "Error fetching visits" });
   }
@@ -598,10 +1112,61 @@ export const getVisitorByDate = async (req, res) => {
     }
 
     const visitors = await Visitor.find(filter).sort({ createdAt: -1 });
+    const withHostNames = await attachHostNames(visitors);
 
-    res.status(200).json(visitors);
+    res.status(200).json(withHostNames);
   } catch (error) {
     console.error("Date Filter Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const verifyCheckInOtp = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { otp } = req.body;
+
+    if (!otp) {
+      return res.status(400).json({ message: "OTP is required" });
+    }
+
+    const visitor = await Visitor.findById(id);
+    if (!visitor) {
+      return res.status(404).json({ message: "Visitor not found" });
+    }
+
+    // Only allow OTP verification for visitors with checkInType 'security'
+    if (visitor.checkInType !== "security") {
+      return res.status(400).json({ message: "OTP verification not required for this check-in type" });
+    }
+
+    const user = await User.findById(visitor.userId);
+    if (!user) {
+      return res.status(404).json({ message: "Associated user not found" });
+    }
+
+    // Verify OTP against user's stored OTP hash
+    const isOtpValid = await bcrypt.compare(otp, user.otpCodeHash);
+    if (!isOtpValid) {
+      return res.status(401).json({ message: "Invalid OTP" });
+    }
+
+    // Mark OTP as verified in visitor document
+    visitor.otpVerified = true;
+    await visitor.save();
+
+    // Clear OTP from user after verification
+    user.otpCodeHash = null;
+    user.otpExpiresAt = null;
+    user.otpRequestedAt = null;
+    await user.save();
+
+    res.status(200).json({ 
+      message: "OTP verified successfully",
+      visitor 
+    });
+  } catch (error) {
+    console.error("OTP Verification Error:", error);
     res.status(500).json({ message: error.message });
   }
 };

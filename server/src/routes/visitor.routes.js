@@ -7,7 +7,12 @@ import {
   getVisitorStats,
   rejectVisitor,
   getMyVisits,
-  getVisitorByDate
+  getVisitorByDate,
+  uploadVisitorPhoto,
+  getVisitorById,
+  securityCheckoutVisitor,
+  requestCheckout,
+  verifyCheckInOtp,
 } from "../controllers/visitor.controller.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -20,6 +25,8 @@ router.post("/checkin", authMiddleware, createVisitor);
 router.get("/", authMiddleware, roleMiddleware("admin", "security"), getVisitors);
 
 router.put("/checkout/:id", authMiddleware, roleMiddleware("visitor", "security"), checkoutVisitor);
+router.post("/request-checkout/:id", authMiddleware, roleMiddleware("visitor"), requestCheckout);
+router.post("/checkout/security-scan", authMiddleware, roleMiddleware("security"), securityCheckoutVisitor);
 
 router.get("/stats", authMiddleware, isAdmin , getVisitorStats);
 
@@ -31,6 +38,27 @@ router.get(
   authMiddleware,
   roleMiddleware("visitor"),
   getMyVisits
+);
+
+router.get(
+  "/details/:id",
+  authMiddleware,
+  roleMiddleware("visitor", "security", "admin"),
+  getVisitorById
+);
+
+router.put(
+  "/photo/:id",
+  authMiddleware,
+  roleMiddleware("visitor", "security", "admin"),
+  uploadVisitorPhoto
+);
+
+router.post(
+  "/verify-checkin-otp/:id",
+  authMiddleware,
+  roleMiddleware("visitor", "security", "admin"),
+  verifyCheckInOtp
 );
 
 router.get("/reports",

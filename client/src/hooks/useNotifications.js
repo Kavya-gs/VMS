@@ -1,19 +1,55 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import API from "../services/api";
 
-export const useNotifications = () => {
+export const useNotifications = ({ pollIntervalMs = 10000 } = {}) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [notificationError, setNotificationError] = useState(null);
+  const lastFetchRef = useRef(null);
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async ({ force = true } = {}) => {
     try {
-      const response = await API.get("/notifications", { showLoader: false });
+      setLoadingNotifications(true);
+      setNotificationError(null);
+
+      const query = [];
+      if (!force && lastFetchRef.current) {
+        query.push(`since=${encodeURIComponent(lastFetchRef.current)}`);
+      }
+
+      const queryString = query.length > 0 ? `?${query.join("&")}` : "";
+      const response = await API.get(`/notifications${queryString}`, { showLoader: false });
       const notificationList = response.data || [];
-      setNotifications(notificationList);
+
+      setNotifications((prev) => {
+        if (force || !lastFetchRef.current) return notificationList;
+
+        const existingIds = new Set(prev.map((item) => item._id));
+        const merged = [...prev];
+
+        notificationList.forEach((item) => {
+          if (!existingIds.has(item._id)) {
+            merged.unshift(item);
+          }
+        });
+
+        return merged.slice(0, 50);
+      });
+
+      lastFetchRef.current = new Date().toISOString();
+
       const unread = notificationList.filter((n) => !n.read).length;
-      setUnreadCount(unread);
+      if (force) {
+        setUnreadCount(unread);
+      } else {
+        setUnreadCount((prev) => prev + unread);
+      }
     } catch (error) {
+      setNotificationError(error);
       console.error("Error fetching notifications:", error);
+    } finally {
+      setLoadingNotifications(false);
     }
   }, []);
 
@@ -39,9 +75,19 @@ export const useNotifications = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchNotifications({ force: false });
+    }, pollIntervalMs);
+
+    return () => clearInterval(interval);
+  }, [fetchNotifications, pollIntervalMs]);
+
   return {
     notifications,
     unreadCount,
+    loadingNotifications,
+    notificationError,
     fetchNotifications,
     markAsRead,
     markAllAsRead,

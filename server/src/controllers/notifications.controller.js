@@ -12,6 +12,7 @@ export const createNotificationForRoles = async (
 
     const notifications = users.map((user) => ({
       userId: user._id,
+      audience: user.role === "visitor" ? "visitor" : "staff",
       ...notificationData,
     }));
 
@@ -22,11 +23,46 @@ export const createNotificationForRoles = async (
   }
 };
 
-export const getNotificationsForUser = async (userId) => {
+export const createNotificationForUser = async (userId, notificationData) => {
   try {
-    const notifications = await Notification.find({ userId })
+    if (!userId) return null;
+
+    const user = await User.findById(userId).select("_id role");
+    if (!user) return null;
+
+    return await Notification.create({
+      userId,
+      audience: user.role === "visitor" ? "visitor" : "staff",
+      ...notificationData,
+    });
+  } catch (error) {
+    console.error("Error creating user notification:", error);
+    return null;
+  }
+};
+
+export const getNotificationsForUser = async (
+  userId,
+  { unreadOnly = false, since } = {}
+) => {
+  try {
+    const query = { userId };
+
+    if (unreadOnly) {
+      query.read = false;
+    }
+
+    if (since) {
+      const sinceDate = new Date(since);
+      if (!Number.isNaN(sinceDate.getTime())) {
+        query.createdAt = { $gt: sinceDate };
+      }
+    }
+
+    const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
-      .limit(20);
+      .limit(50);
+
     return notifications;
   } catch (error) {
     console.error("Error fetching notifications:", error);
@@ -34,10 +70,10 @@ export const getNotificationsForUser = async (userId) => {
   }
 };
 
-export const markAsRead = async (notificationId) => {
+export const markAsRead = async (notificationId, userId) => {
   try {
-    const updated = await Notification.findByIdAndUpdate(
-      notificationId,
+    const updated = await Notification.findOneAndUpdate(
+      { _id: notificationId, userId },
       { read: true },
       { new: true }
     );

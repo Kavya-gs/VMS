@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../../../../services/api";
 import { useDebounce } from "../../../../hooks/useDebounce";
 
 const VisitorsPage = () => {
+  const navigate = useNavigate();
   const [visitors, setVisitors] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -74,9 +76,11 @@ const VisitorsPage = () => {
               <th className="p-3 border">Email</th>
               <th className="p-3 border">Purpose</th>
               <th className="p-3 border">Person To Meet</th>
+              <th className="p-3 border">Check-In Type</th>
               <th className="p-3 border">Check-In</th>
               <th className="p-3 border">Check-Out</th>
               <th className="p-3 border">Status</th>
+              <th className="p-3 border">ID Card</th>
             </tr>
           </thead>
 
@@ -116,12 +120,18 @@ const VisitorsPage = () => {
                 );
               }
 
+              const checkInTypeLabel =
+                visitor.checkInType === "self"
+                  ? "Self Checked In"
+                  : "Manual Checked In";
+
               return (
                 <tr key={visitor._id} className="text-center">
                   <td className="border p-2">{visitor.name}</td>
                   <td className="border p-2">{visitor.email}</td>
                   <td className="border p-2">{visitor.purpose}</td>
                   <td className="border p-2">{visitor.personToMeet}</td>
+                  <td className="border p-2 text-xs text-slate-600 font-medium">{checkInTypeLabel}</td>
 
                   <td className="border p-2">
                     {visitor.checkInTime
@@ -138,6 +148,18 @@ const VisitorsPage = () => {
                   </td>
 
                   <td className="border p-2">{statusBadge}</td>
+                  <td className="border p-2">
+                    {visitor.temporaryCardId ? (
+                      <button
+                        onClick={() => navigate(`/visitor-card/${visitor._id}`)}
+                        className="rounded px-3 py-1 bg-slate-900 text-white text-sm hover:bg-slate-800"
+                      >
+                        View / Download
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-500">Not available</span>
+                    )}
+                  </td>
                 </tr>
               );
             })}

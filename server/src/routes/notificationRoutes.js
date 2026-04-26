@@ -10,7 +10,11 @@ const router = express.Router();
 
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const notifications = await getNotificationsForUser(req.user.id);
+    const { unreadOnly, since } = req.query;
+    const notifications = await getNotificationsForUser(req.user.id, {
+      unreadOnly: unreadOnly === "true",
+      since,
+    });
     res.json(notifications);
   } catch (error) {
     res.status(500).json({ message: "Error fetching notifications" });
@@ -28,7 +32,7 @@ router.put("/mark-all/read", authMiddleware, async (req, res) => {
 
 router.put("/:id/read", authMiddleware, async (req, res) => {
   try {
-    const notification = await markAsRead(req.params.id);
+    const notification = await markAsRead(req.params.id, req.user.id);
     if (!notification) {
       return res.status(404).json({ message: "Notification not found" });
     }
