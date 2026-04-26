@@ -57,6 +57,11 @@ const LoginPage = () => {
   };
 
   const handleVerifyOtp = async () => {
+    if (otp.trim().length !== 6) {
+      toast.error("Please enter a valid 6-digit OTP");
+      return;
+    }
+
     setLoading(true);
     try {
       await verifyOtp({ email: pendingEmail, otp: otp.trim() });
@@ -73,7 +78,26 @@ const LoginPage = () => {
 
   return (
     <div className="auth-shell">
-      <form onSubmit={handleSubmit(handleLogin)} className="auth-card">
+      <button
+        type="button"
+        onClick={() => navigate("/")}
+        className="fixed left-4 top-4 z-20 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+      >
+        Back to Main Page
+      </button>
+
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (authStage === "credentials") {
+            handleSubmit(handleLogin)(event);
+            return;
+          }
+
+          handleVerifyOtp();
+        }}
+        className="auth-card"
+      >
         <h2 className="auth-title">Sign In</h2>
 
         <p className="auth-subtitle mb-6">
@@ -157,8 +181,7 @@ const LoginPage = () => {
             </div>
 
             <button
-              type="button"
-              onClick={handleVerifyOtp}
+              type="submit"
               disabled={loading || otp.length !== 6}
               className="auth-btn auth-btn-primary"
             >
@@ -180,27 +203,17 @@ const LoginPage = () => {
           </>
         )}
 
-        {/* LINKS */}
-        <p className="text-sm mt-4 text-center text-gray-600">
-          {portal === "staff" ? (
+        {portal !== "staff" && (
+          <p className="text-sm mt-4 text-center text-gray-600">
+            Don’t have an account?{" "}
             <span
               className="text-blue-500 cursor-pointer hover:underline"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/register")}
             >
-              Back to landing
+              Register
             </span>
-          ) : (
-            <>
-              Don’t have an account?{" "}
-              <span
-                className="text-blue-500 cursor-pointer hover:underline"
-                onClick={() => navigate("/register")}
-              >
-                Register
-              </span>
-            </>
-          )}
-        </p>
+          </p>
+        )}
       </form>
     </div>
   );

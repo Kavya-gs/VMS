@@ -640,28 +640,6 @@ export const createVisitor = async (req, res) => {
       }
 
       // Final ID card and appointment email will be sent after visitor photo is captured.
-    } else {
-      await createNotificationForRoles(["admin"], {
-        visitorId: visitor._id,
-        type: "check-in-request",
-        title: "New Visitor Request",
-        message: `New visitor request from ${visitor.name}. Purpose: ${visitor.purpose}`,
-        visitorName: visitor.name,
-        visitorEmail: visitor.email,
-        purpose: visitor.purpose,
-        personToMeet: visitor.personToMeet,
-      });
-
-      await createNotificationForUser(visitor.userId, {
-        visitorId: visitor._id,
-        type: "check-in-request",
-        title: "Visit Request Submitted",
-        message: `Your visit request for ${visitor.purpose} has been submitted for approval.`,
-        visitorName: visitor.name,
-        visitorEmail: visitor.email,
-        purpose: visitor.purpose,
-        personToMeet: visitor.personToMeet,
-      });
     }
 
     const visitorWithHost = await attachHostName(visitor);
@@ -981,10 +959,12 @@ export const uploadVisitorPhoto = async (req, res) => {
       return res.status(403).json({ message: "Not allowed to upload photo for this visitor." });
     }
 
+    const hadPhotoBefore = Boolean(visitor.photo);
+
     visitor.photo = photo;
     visitor.cardIssuedAt = new Date();
 
-    if (!visitor.qrToken || !visitor.qrTokenExpiry) {
+    if (visitor.status === "approved" && (!visitor.qrToken || !visitor.qrTokenExpiry)) {
       const { qrToken, qrTokenExpiry } = createQrForVisitor(
         visitor._id,
         visitor.expectedCheckOut,
@@ -993,11 +973,35 @@ export const uploadVisitorPhoto = async (req, res) => {
       visitor.qrTokenExpiry = qrTokenExpiry;
     }
 
-    if (!visitor.temporaryCardId) {
+    if (visitor.status === "approved" && !visitor.temporaryCardId) {
       visitor.temporaryCardId = generateTemporaryCardId();
     }
 
     await visitor.save();
+
+    if (!hadPhotoBefore && visitor.status === "pending" && visitor.checkInType === "self") {
+      await createNotificationForRoles(["admin"], {
+        visitorId: visitor._id,
+        type: "check-in-request",
+        title: "New Visitor Request",
+        message: `New visitor request from ${visitor.name}. Purpose: ${visitor.purpose}`,
+        visitorName: visitor.name,
+        visitorEmail: visitor.email,
+        purpose: visitor.purpose,
+        personToMeet: visitor.personToMeet,
+      });
+
+      await createNotificationForUser(visitor.userId, {
+        visitorId: visitor._id,
+        type: "check-in-request",
+        title: "Visit Request Submitted",
+        message: `Your visit request for ${visitor.purpose} has been submitted for approval.`,
+        visitorName: visitor.name,
+        visitorEmail: visitor.email,
+        purpose: visitor.purpose,
+        personToMeet: visitor.personToMeet,
+      });
+    }
 
     const qrDataUri = visitor.qrToken ? await generateQrDataUri(visitor.qrToken) : null;
     if (visitor.status === "approved") {

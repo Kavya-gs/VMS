@@ -59,6 +59,14 @@ const RegisterPage = () => {
 
   return (
     <div className="auth-shell">
+      <button
+        type="button"
+        onClick={() => navigate("/")}
+        className="fixed left-4 top-4 z-20 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+      >
+        Back to Main Page
+      </button>
+
       <form onSubmit={handleSubmit(handleRegister)} className="auth-card">
         <h2 className="auth-title mb-6">Create Visitor Account</h2>
 
@@ -160,16 +168,6 @@ const RegisterPage = () => {
             onClick={() => navigate("/login?portal=visitor")}
           >
             Login
-          </span>
-        </p>
-
-        <p className="text-xs mt-2 text-center text-gray-500">
-          Need staff login?{" "}
-          <span
-            className="text-blue-500 cursor-pointer hover:underline"
-            onClick={() => navigate("/")}
-          >
-            Go to landing
           </span>
         </p>
       </form>

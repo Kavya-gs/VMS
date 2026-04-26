@@ -4,6 +4,7 @@ const VisitorIdCard = ({ visitor }) => {
   const expiry = visitor.expectedCheckOut
     ? new Date(visitor.expectedCheckOut).toLocaleString("en-IN")
     : "N/A";
+  const showQrCode = visitor.status === "approved" && Boolean(visitor.qrToken);
 
   return (
     <div className="bg-white border border-slate-200 rounded-[28px] shadow-lg p-6 max-w-4xl mx-auto">
@@ -60,17 +61,31 @@ const VisitorIdCard = ({ visitor }) => {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[auto_1fr] items-center">
-            <div id="visitor-card-qr" className="rounded-3xl border border-slate-200 bg-white p-4 flex items-center justify-center">
-              <QRCode value={visitor.qrToken || ""} size={120} />
+            <div id="visitor-card-qr" className="rounded-3xl border border-slate-200 bg-white p-4 flex items-center justify-center min-h-[154px] min-w-[154px]">
+              {showQrCode ? (
+                <QRCode value={visitor.qrToken} size={120} />
+              ) : (
+                <div className="text-center text-slate-400 text-xs font-medium uppercase tracking-[0.18em]">
+                  QR Locked
+                </div>
+              )}
             </div>
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">QR Code</p>
-              <p className="mt-2 text-sm text-slate-700">
-                Scan to verify visitor details, status, and expiry information.
-              </p>
-              <p className="mt-3 text-xs text-slate-500">
-                Expiry: {expiry}
-              </p>
+              {showQrCode ? (
+                <>
+                  <p className="mt-2 text-sm text-slate-700">
+                    Scan to verify visitor details, status, and expiry information.
+                  </p>
+                  <p className="mt-3 text-xs text-slate-500">
+                    Expiry: {expiry}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-amber-700">
+                  QR will be generated only after admin approval.
+                </p>
+              )}
             </div>
           </div>
         </div>

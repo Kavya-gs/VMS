@@ -18,6 +18,7 @@ const VisitorCardPage = () => {
   const { role, user } = useAuth();
   const [pdfLoading, setPdfLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [isCaptureModalOpen, setIsCaptureModalOpen] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -108,6 +109,12 @@ const VisitorCardPage = () => {
     setCameraActive(false);
   };
 
+  const closeCaptureModal = () => {
+    stopCamera();
+    setCameraError("");
+    setIsCaptureModalOpen(false);
+  };
+
   const captureImage = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -137,6 +144,7 @@ const VisitorCardPage = () => {
       setVisitor(response.data);
       setCapturePreview(null);
       toast.success("Visitor photo captured and ID card updated.");
+      closeCaptureModal();
     } catch (error) {
       console.error(error);
       toast.error(
@@ -187,6 +195,12 @@ const VisitorCardPage = () => {
 
   const downloadPdf = async () => {
     if (!visitor) return;
+
+    if (visitor.status !== "approved") {
+      toast.error("ID card PDF will be available after admin approval.");
+      return;
+    }
+
     setPdfLoading(true);
 
     try {
@@ -271,13 +285,6 @@ const VisitorCardPage = () => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
       doc.text(visitor.name || "Visitor Name", rightX, leftPanelY + 18);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text(
-        `UID: ${visitor._id.slice(-8).toUpperCase()}`,
-        rightX,
-        leftPanelY + 36,
-      );
 
       if (visitor.status) {
         const statusText = visitor.status.toUpperCase();
@@ -362,6 +369,7 @@ const VisitorCardPage = () => {
     }
 
     autoStartTriggeredRef.current = true;
+    setIsCaptureModalOpen(true);
     startCamera();
   }, [canCapture, cameraActive, capturePreview, startCamera]);
 
@@ -448,88 +456,26 @@ const VisitorCardPage = () => {
           <VisitorIdCard visitor={visitor} />
 
           {canCapture && (
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 space-y-4">
-              <h2 className="text-lg font-semibold">Capture visitor photo</h2>
-              <p className="text-sm text-slate-600">
-                Use the camera interface to capture a live photo for the visitor
-                card.
-              </p>
-
-              {cameraError && (
-                <p className="text-sm text-rose-600">{cameraError}</p>
-              )}
-
-              {capturePreview ? (
-                <div className="space-y-4">
-                  <div className="rounded-3xl overflow-hidden border border-slate-200 bg-white">
-                    <img
-                      src={capturePreview}
-                      alt="Capture preview"
-                      className="w-full object-cover"
-                    />
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={uploadPhoto}
-                      disabled={saving}
-                      className="w-full sm:w-auto rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 disabled:opacity-60"
-                    >
-                      {saving ? "Saving..." : "Save Photo & Update Card"}
-                    </button>
-                    <button
-                      onClick={() => setCapturePreview(null)}
-                      className="w-full sm:w-auto rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-800"
-                    >
-                      Retake Photo
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {cameraActive ? (
-                    <div className="space-y-4">
-                      <div className="rounded-3xl overflow-hidden border border-slate-200 bg-black">
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          muted
-                          className="h-80 w-full object-cover"
-                        />
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <button
-                          onClick={captureImage}
-                          className="w-full sm:w-auto rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                        >
-                          Capture Photo
-                        </button>
-                        <button
-                          onClick={stopCamera}
-                          className="w-full sm:w-auto rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-800"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={startCamera}
-                      className="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800"
-                    >
-                      Start Camera
-                    </button>
-                  )}
-                </div>
-              )}
-              <canvas ref={canvasRef} className="hidden" />
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:px-5 sm:py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Capture visitor photo</h2>
+                <p className="text-sm text-slate-600">
+                  Open camera in a focused square modal for better framing.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsCaptureModalOpen(true)}
+                className="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800"
+              >
+                Open Capture Modal
+              </button>
             </div>
           )}
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <button
               onClick={downloadPdf}
-              disabled={pdfLoading || !visitor.photo}
+              disabled={pdfLoading || !visitor.photo || visitor.status !== "approved"}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:opacity-60"
             >
               {pdfLoading ? "Generating PDF..." : "Download ID Card PDF"}
@@ -554,8 +500,99 @@ const VisitorCardPage = () => {
               card.
             </p>
           )}
+          {visitor.status !== "approved" && (
+            <p className="text-sm text-amber-700">
+              Download is disabled until admin approves your visit request.
+            </p>
+          )}
         </div>
       )}
+
+      {canCapture && isCaptureModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-6">
+          <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-5">
+              <h3 className="text-base font-semibold text-slate-900">Photo Capture</h3>
+              <button
+                onClick={closeCaptureModal}
+                className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-5 space-y-4">
+              {cameraError && (
+                <p className="text-sm text-rose-600">{cameraError}</p>
+              )}
+
+              <div className="mx-auto w-full max-w-[420px] aspect-square rounded-xl overflow-hidden border border-slate-200 bg-black">
+                {capturePreview ? (
+                  <img
+                    src={capturePreview}
+                    alt="Capture preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : cameraActive ? (
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-slate-300 text-sm">
+                    Camera is off
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                {capturePreview ? (
+                  <>
+                    <button
+                      onClick={uploadPhoto}
+                      disabled={saving}
+                      className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-white hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      {saving ? "Saving..." : "Save Photo & Continue"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCapturePreview(null);
+                        startCamera();
+                      }}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-800"
+                    >
+                      Retake
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={cameraActive ? captureImage : startCamera}
+                      className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-white hover:bg-blue-700"
+                    >
+                      {cameraActive ? "Capture Photo" : "Start Camera"}
+                    </button>
+                    {cameraActive && (
+                      <button
+                        onClick={stopCamera}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-800"
+                      >
+                        Stop Camera
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 };
