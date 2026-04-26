@@ -19,36 +19,28 @@ const DashboardPage = () => {
 
   const { role, authLoading } = useAuth();
 
-  if (authLoading) {
-    return null;
-  }
-
-  if (role === "visitor") {
-    return <VisitorDashboard />;
-  }
-
-  const fetchVisitors = async () => {
+  const fetchVisitors = useCallback(async () => {
     try {
       const res = await API.get("/visitors", { showLoader: false });
       setVisitors(res.data || []);
     } catch (error) {
       console.error(error);
     }
-  };
+  }, []);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const res = await API.get("/visitors/stats", { showLoader: false });
       setStats(res.data);
     } catch (error) {
       console.error(error);
     }
-  };
+  }, []);
 
   const loadDashboardData = useCallback(() => {
     fetchVisitors();
     fetchStats();
-  }, []);
+  }, [fetchVisitors, fetchStats]);
 
   const handleSecurityScanCheckout = async () => {
     if (!scanInput.trim()) {
@@ -104,8 +96,20 @@ const DashboardPage = () => {
     };
   }, [role, loadDashboardData]);
 
-  const checkedOut = visitors.filter((v) => v.checkOutTime).length;
-  const inside = visitors.filter((v) => !v.checkOutTime).length;
+  if (authLoading) {
+    return null;
+  }
+
+  if (role === "visitor") {
+    return <VisitorDashboard />;
+  }
+
+  const checkedOut = visitors.filter(
+    (v) => v.checkOutTime && ["approved", "checkout-requested", "checked-out"].includes(v.status)
+  ).length;
+  const inside = visitors.filter(
+    (v) => !v.checkOutTime && ["approved", "checkout-requested"].includes(v.status)
+  ).length;
   const visitorsToday = visitors.filter((v) => {
     const checkInDate = new Date(v.checkInTime);
     const today = new Date();
@@ -127,17 +131,40 @@ const DashboardPage = () => {
 
   const COLORS = ["#0d9e23", "#ef4444"];
 
+  const roleTitle = role === "admin" ? "Admin Command Center" : "Security Operations";
+  const roleDescription =
+    role === "admin"
+      ? "Track approvals, occupancy, and weekly movement trends from one place."
+      : "Process quick exits using scan input and monitor live visitor movement.";
+
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 space-y-6 sm:space-y-10">
-      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Dashboard</h1>
+    <div className="relative max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-2 sm:py-4 space-y-6 sm:space-y-8">
+      <div className="pointer-events-none absolute -top-12 -left-8 h-44 w-44 rounded-full bg-sky-200/50 blur-3xl" />
+      <div className="pointer-events-none absolute top-6 right-0 h-52 w-52 rounded-full bg-emerald-200/40 blur-3xl" />
+
+      <section className="relative overflow-hidden rounded-[26px] border border-slate-200 bg-white p-5 sm:p-7 shadow-[0_16px_36px_rgba(15,23,42,0.08)]">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-500" />
+        <div className="absolute -right-10 -top-8 h-36 w-36 rounded-full bg-sky-100/70 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Main Dashboard</p>
+            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900">{roleTitle}</h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-600">{roleDescription}</p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            Live Data
+          </div>
+        </div>
+      </section>
 
       {role === "admin" && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard title="Visitors Today" value={stats.visitorsToday} color="text-indigo-600" />
-            <StatCard title="Total Visitors" value={stats.totalVisitors} color="text-teal-600" />
-            <StatCard title="Visitors Inside" value={stats.visitorsInside} color="text-green-600" />
-            <StatCard title="Checked Out Today" value={stats.checkedOutToday} color="text-red-600" />
+            <StatCard title="Visitors Today" value={stats.visitorsToday} color="text-indigo-600" accent="bg-indigo-500" />
+            <StatCard title="Total Visitors" value={stats.totalVisitors} color="text-teal-600" accent="bg-teal-500" />
+            <StatCard title="Visitors Inside" value={stats.visitorsInside} color="text-green-600" accent="bg-green-500" />
+            <StatCard title="Checked Out Today" value={stats.checkedOutToday} color="text-red-600" accent="bg-red-500" />
           </div>
 
           <ChartSection
@@ -153,29 +180,35 @@ const DashboardPage = () => {
 
       {role === "security" && (
         <>
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-600">
               Security Checkout
             </p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-900">
+            <h2 className="mt-2 text-xl font-semibold text-slate-900">
               Scan Visitor QR / Card ID
             </h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-600">
               Paste scanned QR token, temporary card ID (VC-XXXXXX), or visitor ID.
             </p>
+
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-medium text-slate-600">QR token</span>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-medium text-slate-600">VC-123456 card ID</span>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-medium text-slate-600">Mongo visitor ID</span>
+            </div>
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <input
                 value={scanInput}
                 onChange={(event) => setScanInput(event.target.value)}
                 placeholder="Paste scan value here"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-500"
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:bg-white"
               />
               <button
                 type="button"
                 onClick={handleSecurityScanCheckout}
                 disabled={scanLoading}
-                className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:bg-slate-400"
+                className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed"
               >
                 {scanLoading ? "Processing..." : "Mark Checkout"}
               </button>
@@ -183,9 +216,9 @@ const DashboardPage = () => {
           </section>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <StatCard title="Visitors Today" value={visitorsToday} color="text-indigo-600" />
-            <StatCard title="Inside" value={inside} color="text-green-600" />
-            <StatCard title="Checked Out" value={checkedOut} color="text-red-600" />
+            <StatCard title="Visitors Today" value={visitorsToday} color="text-indigo-600" accent="bg-indigo-500" />
+            <StatCard title="Inside" value={inside} color="text-green-600" accent="bg-green-500" />
+            <StatCard title="Checked Out" value={checkedOut} color="text-red-600" accent="bg-red-500" />
           </div>
 
           <ChartSection
@@ -220,10 +253,14 @@ const DashboardPage = () => {
   );
 };
 
-const StatCard = ({ title, value, color }) => (
-  <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 flex flex-col items-center text-center hover:shadow-lg transition">
-    <h2 className="text-gray-500 text-sm">{title}</h2>
-    <p className={`text-2xl sm:text-3xl font-bold mt-2 ${color || ""}`}>
+const StatCard = ({ title, value, color, accent = "bg-slate-500" }) => (
+  <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 group-hover:from-sky-400 group-hover:via-indigo-400 group-hover:to-emerald-400" />
+    <div className="flex items-center justify-between">
+      <h2 className="text-slate-500 text-xs font-semibold uppercase tracking-[0.18em]">{title}</h2>
+      <span className={`h-2.5 w-2.5 rounded-full ${accent}`} />
+    </div>
+    <p className={`text-2xl sm:text-3xl font-bold mt-3 ${color || ""}`}>
       {value || 0}
     </p>
   </div>

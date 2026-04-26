@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast';
 import API from '../../../../services/api';
 
@@ -6,20 +6,20 @@ const ApprovalsPage = () => {
 
   const [visitors, setVisitors] = useState([]);
 
-  useEffect(() => {
-    fetchVisitors();
-  },[]);
-
-  const fetchVisitors = async() => {
+  const fetchVisitors = useCallback(async () => {
     try {
       const res = await API.get("/visitors");
-      const pendingVisitors = res.data.filter((visitor) => visitor.status === "pending")
+      const pendingVisitors = res.data.filter((visitor) => visitor.status === "pending");
       setVisitors(pendingVisitors);
     } catch (error) {
       console.error(error);
       toast.error("Failed to fetch visitors");
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchVisitors();
+  }, [fetchVisitors]);
 
   const approveVisitor = async(id) => {
     try {

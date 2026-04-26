@@ -24,7 +24,7 @@ router.post("/checkin", authMiddleware, createVisitor);
 
 router.get("/", authMiddleware, roleMiddleware("admin", "security"), getVisitors);
 
-router.put("/checkout/:id", authMiddleware, roleMiddleware("visitor", "security"), checkoutVisitor);
+router.put("/checkout/:id", authMiddleware, roleMiddleware("security"), checkoutVisitor);
 router.post("/request-checkout/:id", authMiddleware, roleMiddleware("visitor"), requestCheckout);
 router.post("/checkout/security-scan", authMiddleware, roleMiddleware("security"), securityCheckoutVisitor);
 

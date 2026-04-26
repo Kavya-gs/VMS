@@ -7,52 +7,36 @@ import { visitorSchema } from "../../../../validations/visitorSchema";
 import API from "../../../../services/api";
 import { useAuth } from "../../../../contexts/useAuth";
 
-const TimePickerInput = ({ value, onChange, disabled, isCheckInTime, checkInDate, checkInTime, todayDate, currentTime, isBefore }) => {
-  const [hour, setHour] = useState(12);
-  const [minute, setMinute] = useState(0);
-  const [period, setPeriod] = useState("AM");
+const TimePickerInput = ({ value, onChange, disabled, isCheckInTime, checkInDate, todayDate, currentTime, isBefore }) => {
+  const [initialHour = 12, initialMinute = 0] = value ? value.split(":").map(Number) : [];
+  const hour = initialHour % 12 || 12;
+  const minute = Number.isNaN(initialMinute) ? 0 : initialMinute;
+  const period = initialHour >= 12 ? "PM" : "AM";
 
-  // Parse time value to hour/minute/period
-  useEffect(() => {
-    if (value) {
-      const [h, m] = value.split(":").map(Number);
-      const p = h >= 12 ? "PM" : "AM";
-      const hour12 = h % 12 || 12;
-      setHour(hour12);
-      setMinute(m);
-      setPeriod(p);
-    }
-  }, [value]);
-
-  // Convert 12-hour format to 24-hour format and update
   const updateTime = (h, m, p) => {
     let hour24 = p === "PM" ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
     const timeStr = `${String(hour24).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-    
-    // Check if time is disabled (in past)
+
     if (isCheckInTime && checkInDate === todayDate) {
       if (isBefore(timeStr, currentTime)) {
-        return; // Don't allow past times
+        return;
       }
     }
-    
+
     onChange(timeStr);
   };
 
   const handleHourChange = (e) => {
     const newHour = Number(e.target.value);
-    setHour(newHour);
     updateTime(newHour, minute, period);
   };
 
   const handleMinuteChange = (e) => {
     const newMinute = Number(e.target.value);
-    setMinute(newMinute);
     updateTime(hour, newMinute, period);
   };
 
   const handlePeriodToggle = (newPeriod) => {
-    setPeriod(newPeriod);
     updateTime(hour, minute, newPeriod);
   };
 
@@ -152,8 +136,7 @@ const CheckInPage = () => {
     register,
     handleSubmit,
     trigger,
-    formState: { errors, isValid },
-    reset,
+    formState: { errors },
     setValue,
   } = useForm({
     mode: "onChange",
@@ -295,25 +278,14 @@ const CheckInPage = () => {
       const response = await API.post("/visitors/checkin", data);
       if (role === "security") {
         toast.success(
-          "Visitor created. Credentials and OTP were sent to the visitor. Capture photo next to generate the ID card and appointment email."
+          "Visitor created. Credentials were sent to the visitor. Capture photo next to generate the ID card and appointment email."
         );
         navigate(`/visitor-card/${response.data._id}`);
         return;
       }
 
-      toast.success("Applied for Check-In Successfully!");
-
-      reset({
-        purpose: "",
-        personToMeet: "",
-        expectedCheckIn: "",
-        expectedCheckOut: "",
-      });
-
-      setCheckInDate("");
-      setCheckInTime("");
-      setCheckOutDate("");
-      setCheckOutTime("");
+      toast.success("Applied for Check-In Successfully! Capture your photo now.");
+      navigate(`/visitor-card/${response.data._id}`);
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "Error checking in visitor";
@@ -335,8 +307,28 @@ const CheckInPage = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-lg space-y-5"
       >
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Check-In Mode
+          </p>
+          <p className="mt-1 text-sm font-semibold text-slate-800">
+            {securityManualCheckin ? "Manual Check-In" : "Self Check-In"}
+          </p>
+          <p className="mt-1 text-xs text-slate-600">
+            {securityManualCheckin
+              ? "Security/Admin creates the visit using the entered visitor details."
+              : "Visitor details are auto-fetched from your profile for self check-in."}
+          </p>
+        </div>
+
         {securityManualCheckin && (
           <>
+            <div className="relative py-1">
+              <hr className="border-slate-200" />
+              <span className="absolute -top-2 left-3 bg-white px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Manual Visitor Details
+              </span>
+            </div>
             <div>
               <label className="text-sm font-medium text-slate-700">Visitor Name</label>
               <input
@@ -361,6 +353,27 @@ const CheckInPage = () => {
               <p className="text-rose-600 text-sm mt-1">{errors.email?.message || ""}</p>
             </div>
           </>
+        )}
+
+        {!securityManualCheckin && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <div className="relative pb-3">
+              <hr className="border-emerald-200" />
+              <span className="absolute -top-2 left-3 bg-emerald-50 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                Self Check-In Profile Details
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Name</p>
+                <p className="mt-1 text-sm font-medium text-slate-900">{user?.name || "Not available"}</p>
+              </div>
+              <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Email</p>
+                <p className="mt-1 text-sm font-medium text-slate-900">{user?.email || "Not available"}</p>
+              </div>
+            </div>
+          </div>
         )}
 
         <div>
@@ -442,7 +455,6 @@ const CheckInPage = () => {
                   }}
                   isCheckInTime={true}
                   checkInDate={checkInDate}
-                  checkInTime={checkInTime}
                   todayDate={todayDate}
                   currentTime={currentTime}
                   isBefore={isBefore}
@@ -479,7 +491,6 @@ const CheckInPage = () => {
                   }}
                   isCheckInTime={false}
                   checkInDate={checkInDate}
-                  checkInTime={checkInTime}
                   todayDate={todayDate}
                   currentTime={currentTime}
                   isBefore={isBefore}

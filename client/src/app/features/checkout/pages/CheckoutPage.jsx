@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import API from "../../../../services/api";
 import { useNavigate } from "react-router-dom";
@@ -12,15 +12,9 @@ const CheckoutPage = () => {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!authLoading && role) {
-      fetchVisitors();
-    }
-  }, [authLoading, role]);
-
   const isPrivileged = role === "admin" || role === "security";
 
-  const fetchVisitors = async () => {
+  const fetchVisitors = useCallback(async () => {
     try {
       setLoading(true);
       const endpoint = role === "visitor" ? "/visitors/my-visits" : "/visitors";
@@ -29,7 +23,17 @@ const CheckoutPage = () => {
       const filtered =
         role === "visitor"
           ? res.data
-          : res.data.filter((v) => v.status === "approved" && !v.checkOutTime);
+          : res.data.filter((v) => {
+              if (v.checkOutTime) return false;
+
+              const isCheckoutRequested = v.status === "checkout-requested";
+              const isQrExpired =
+                v.status === "approved" &&
+                Boolean(v.qrTokenExpiry) &&
+                new Date() > new Date(v.qrTokenExpiry);
+
+              return isCheckoutRequested || isQrExpired;
+            });
       setVisitors(filtered);
     } catch (error) {
       console.error(error);
@@ -37,13 +41,24 @@ const CheckoutPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [role]);
+
+  useEffect(() => {
+    if (!authLoading && role) {
+      fetchVisitors();
+    }
+  }, [authLoading, role, fetchVisitors]);
 
   const handleCheckout = async (id) => {
     setCheckingOutId(id);
     try {
-      await API.put(`/visitors/checkout/${id}`);
-      toast.success("Checkout successful!");
+      if (role === "visitor") {
+        await API.post(`/visitors/request-checkout/${id}`);
+        toast.success("Checkout request sent for security approval!");
+      } else {
+        await API.put(`/visitors/checkout/${id}`);
+        toast.success("Checkout approved by security!");
+      }
       fetchVisitors();
       navigate("/dashboard");
     } catch (error) {
@@ -67,11 +82,13 @@ const CheckoutPage = () => {
         <>
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Pending Checkout</h2>
-            {visitors.filter((v) => v.status === "approved" && !v.checkOutTime).length > 0 ? (
-              visitors.filter((v) => v.status === "approved" && !v.checkOutTime).map((v) => {
+            {visitors.filter((v) => !v.checkOutTime).length > 0 ? (
+              visitors.filter((v) => !v.checkOutTime).map((v) => {
                 const expired = v.qrTokenExpiry && new Date() > new Date(v.qrTokenExpiry);
                 const notActive = v.expectedCheckIn && new Date() < new Date(v.expectedCheckIn);
                 const hostName = v.hostName || v.personToMeet || "Unassigned";
+                const isCheckoutRequested = v.status === "checkout-requested";
+                const eligibleForSecurity = isCheckoutRequested || expired;
 
                 return (
                   <div key={v._id} className="border bg-white p-4 mb-3 rounded-lg hover:shadow-md transition">
@@ -86,6 +103,15 @@ const CheckoutPage = () => {
                         <p className="text-xs text-gray-500">
                           Requested checkout: {new Date(v.expectedCheckOut).toLocaleString()}
                         </p>
+                        {isPrivileged && (
+                          <p className="text-xs mt-1 text-gray-500">
+                            {isCheckoutRequested
+                              ? "Eligible: User requested checkout"
+                              : expired
+                              ? "Eligible: QR expired"
+                              : "Not eligible for security checkout"}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex flex-col items-start gap-2 sm:items-end">
@@ -93,15 +119,29 @@ const CheckoutPage = () => {
                           onClick={() => handleCheckout(v._id)}
                           disabled={
                             checkingOutId === v._id ||
-                            (!isPrivileged && (expired || notActive))
+                            (isPrivileged
+                              ? !eligibleForSecurity
+                              : notActive || isCheckoutRequested)
                           }
                           className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-4 py-2 rounded font-semibold transition h-fit"
                         >
-                          {checkingOutId === v._id ? "Checking out..." : "Checkout"}
+                          {checkingOutId === v._id
+                            ? "Processing..."
+                            : isPrivileged
+                            ? "Approve Checkout"
+                            : isCheckoutRequested
+                            ? "Request Sent"
+                            : "Request Checkout"}
                         </button>
-                        {(expired || notActive) && (
+                        {(expired || notActive || isCheckoutRequested) && (
                           <p className="text-xs text-gray-500">
-                            {expired ? "QR expired — checkout blocked" : "QR not active yet"}
+                            {isCheckoutRequested
+                              ? "Waiting for security approval"
+                              : expired
+                              ? isPrivileged
+                                ? "QR expired — approval allowed"
+                                : "QR expired — waiting for security"
+                              : "QR not active yet"}
                           </p>
                         )}
                       </div>

@@ -47,7 +47,7 @@ const visitorSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["pending", "approved", "rejected", "checked-in", "checked-out"],
+            enum: ["pending", "approved", "checkout-requested", "rejected", "checked-in", "checked-out"],
             default: "pending",
         },
         qrToken: {

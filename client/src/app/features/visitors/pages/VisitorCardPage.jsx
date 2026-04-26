@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { jsPDF } from "jspdf";
@@ -17,14 +17,12 @@ const VisitorCardPage = () => {
   const [saving, setSaving] = useState(false);
   const { role, user } = useAuth();
   const [pdfLoading, setPdfLoading] = useState(false);
-  const [otpRequired, setOtpRequired] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
-  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const autoStartTriggeredRef = useRef(false);
 
-  // Security can only checkout if request is raised or QR expired
   const canSecurityCheckout = (() => {
     if (role !== "security" || !visitor) return false;
     if (visitor.status === "checked-out" || visitor.status === "rejected")
@@ -37,7 +35,7 @@ const VisitorCardPage = () => {
     return false;
   })();
 
-  const fetchVisitor = async (options = {}) => {
+  const fetchVisitor = useCallback(async (options = {}) => {
     if (!options.skipLoader) {
       setLoading(true);
     }
@@ -57,11 +55,11 @@ const VisitorCardPage = () => {
         setLoading(false);
       }
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchVisitor();
-  }, [id]);
+  }, [fetchVisitor]);
 
   useEffect(() => {
     const refreshInterval = setInterval(() => {
@@ -69,7 +67,7 @@ const VisitorCardPage = () => {
     }, 15000);
 
     return () => clearInterval(refreshInterval);
-  }, [id]);
+  }, [fetchVisitor]);
 
   useEffect(() => {
     const cleanup = () => {
@@ -88,47 +86,7 @@ const VisitorCardPage = () => {
     }
   }, [cameraActive]);
 
-  useEffect(() => {
-    // For security/admin check-in, skip OTP verification
-    if (
-      (visitor?.checkInType === "security" ||
-        visitor?.checkInType === "admin") &&
-      visitor?.status === "approved"
-    ) {
-      setOtpRequired(false);
-    } else if (visitor?.checkInType === "self" && !visitor?.otpVerified) {
-      setOtpRequired(true);
-    } else {
-      setOtpRequired(false);
-    }
-  }, [visitor]);
-
-  const handleOtpVerify = async () => {
-    if (otpValue.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP");
-      return;
-    }
-
-    setOtpVerifying(true);
-    try {
-      await API.post(`/visitors/verify-checkin-otp/${id}`, {
-        otp: otpValue,
-      });
-      setOtpRequired(false);
-      setOtpValue("");
-      toast.success("OTP verified successfully!");
-      fetchVisitor({ skipLoader: true });
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        error.response?.data?.message || "Invalid OTP. Please try again.",
-      );
-    } finally {
-      setOtpVerifying(false);
-    }
-  };
-
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
@@ -140,7 +98,7 @@ const VisitorCardPage = () => {
       console.error(error);
       setCameraError("Unable to access camera. Please allow camera access.");
     }
-  };
+  }, []);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -186,6 +144,22 @@ const VisitorCardPage = () => {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSecurityCheckout = async () => {
+    if (!visitor?._id) return;
+
+    setCheckoutLoading(true);
+    try {
+      await API.put(`/visitors/checkout/${visitor._id}`);
+      toast.success("Visitor checked out successfully");
+      fetchVisitor({ skipLoader: true });
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to checkout visitor");
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -375,11 +349,39 @@ const VisitorCardPage = () => {
 
   const canCapture =
     visitor &&
-    visitor.status === "approved" &&
+    visitor.status !== "rejected" &&
+    visitor.status !== "checked-out" &&
     !visitor.photo &&
     (role === "security" ||
       role === "admin" ||
       (role === "visitor" && visitor.userId?.toString() === user?._id));
+
+  useEffect(() => {
+    if (!canCapture || cameraActive || capturePreview || autoStartTriggeredRef.current) {
+      return;
+    }
+
+    autoStartTriggeredRef.current = true;
+    startCamera();
+  }, [canCapture, cameraActive, capturePreview, startCamera]);
+
+  const statusTone =
+    visitor?.status === "approved"
+      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+      : visitor?.status === "pending"
+      ? "bg-amber-100 text-amber-800 border-amber-200"
+      : visitor?.status === "rejected"
+      ? "bg-rose-100 text-rose-700 border-rose-200"
+      : "bg-slate-100 text-slate-700 border-slate-200";
+
+  const checkInTypeLabel =
+    visitor?.checkInType === "self"
+      ? "Self Check-In"
+      : visitor?.checkInType === "security"
+      ? "Security Check-In"
+      : visitor?.checkInType === "admin"
+      ? "Admin Check-In"
+      : "Not set";
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6">
@@ -406,36 +408,43 @@ const VisitorCardPage = () => {
         <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700">
           Visitor not found.
         </div>
-      ) : otpRequired ? (
-        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 max-w-md mx-auto space-y-4 text-center">
-          <h2 className="text-xl font-bold text-amber-900">
-            Verify Visitor OTP
-          </h2>
-          <p className="text-sm text-amber-800">
-            An OTP has been sent to{" "}
-            <span className="font-semibold">{visitor.email}</span>. Please enter
-            it to proceed.
-          </p>
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="6-digit OTP"
-            value={otpValue}
-            onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, ""))}
-            disabled={otpVerifying}
-            className="w-full rounded-lg border border-amber-300 bg-white px-4 py-2 text-center tracking-widest text-lg font-bold"
-          />
-          <button
-            onClick={handleOtpVerify}
-            disabled={otpVerifying || otpValue.length !== 6}
-            className="w-full rounded-lg bg-amber-600 px-4 py-3 text-white font-medium hover:bg-amber-700 disabled:opacity-60"
-          >
-            {otpVerifying ? "Verifying..." : "Verify OTP"}
-          </button>
-        </div>
       ) : (
         <div className="space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:px-5 sm:py-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className="text-sm font-semibold text-slate-700">Status</span>
+              <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${statusTone}`}>
+                {visitor.status || "unknown"}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                {checkInTypeLabel}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                Card ID: {visitor.temporaryCardId || "Pending"}
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-slate-600 sm:grid-cols-3">
+              <p>
+                <span className="font-medium text-slate-700">Created:</span>{" "}
+                {visitor.createdAt
+                  ? new Date(visitor.createdAt).toLocaleString("en-IN")
+                  : "N/A"}
+              </p>
+              <p>
+                <span className="font-medium text-slate-700">Expected In:</span>{" "}
+                {visitor.expectedCheckIn
+                  ? new Date(visitor.expectedCheckIn).toLocaleString("en-IN")
+                  : "N/A"}
+              </p>
+              <p>
+                <span className="font-medium text-slate-700">Expected Out:</span>{" "}
+                {visitor.expectedCheckOut
+                  ? new Date(visitor.expectedCheckOut).toLocaleString("en-IN")
+                  : "N/A"}
+              </p>
+            </div>
+          </div>
+
           <VisitorIdCard visitor={visitor} />
 
           {canCapture && (
@@ -527,11 +536,11 @@ const VisitorCardPage = () => {
             </button>
             {role === "security" && canSecurityCheckout && (
               <button
+                disabled={checkoutLoading}
                 className="rounded-lg bg-rose-600 px-4 py-2 text-white hover:bg-rose-700"
-                // TODO: Implement actual checkout handler
-                onClick={() => toast.success("Checkout logic here")}
+                onClick={handleSecurityCheckout}
               >
-                Checkout Visitor
+                {checkoutLoading ? "Checking Out..." : "Checkout Visitor"}
               </button>
             )}
             <p className="text-sm text-slate-500">

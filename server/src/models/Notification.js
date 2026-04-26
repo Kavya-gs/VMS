@@ -18,7 +18,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["check-in-request", "check-in-approved", "check-out", "rejection", "expiry-alert"],
+      enum: ["check-in-request", "check-in-approved", "checkout-request", "check-out", "rejection", "expiry-alert"],
       required: true,
     },
     title: String,

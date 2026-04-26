@@ -26,7 +26,8 @@ const RegisterPage = () => {
   const handleRegister = async (formData) => {
     setLoading(true);
     try {
-      const { confirmPassword, ...dataToSend } = formData;
+      const dataToSend = { ...formData };
+      delete dataToSend.confirmPassword;
 
       await API.post("/auth/register", {
         ...dataToSend,
@@ -152,7 +153,6 @@ const RegisterPage = () => {
           {loading ? "Registering..." : "Register"}
         </button>
 
-        {/* LINKS */}
         <p className="text-sm mt-4 text-center text-gray-600">
           Already have an account?{" "}
           <span

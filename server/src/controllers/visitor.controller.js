@@ -227,6 +227,17 @@ const finalizeCheckout = async ({ visitor, actor, checkoutChannel }) => {
   });
 };
 
+const isEligibleForSecurityCheckout = (visitor) => {
+  if (!visitor || visitor.checkOutTime) return false;
+  if (visitor.status === "checked-out" || visitor.status === "rejected") return false;
+
+  const isCheckoutRequested = visitor.status === "checkout-requested";
+  const isQrExpired =
+    Boolean(visitor.qrTokenExpiry) && new Date() > new Date(visitor.qrTokenExpiry);
+
+  return isCheckoutRequested || isQrExpired;
+};
+
 const generateQrDataUri = async (value) => {
   try {
     return await QRCode.toDataURL(value);
@@ -454,6 +465,17 @@ export const scanExpiredVisitsAndNotify = async () => {
 
 export const createVisitor = async (req, res) => {
   try {
+    const isManualCheckIn = req.user.role === "security" || req.user.role === "admin";
+    let authenticatedUserProfile = null;
+
+    if (!isManualCheckIn) {
+      authenticatedUserProfile = await User.findById(req.user.id).select("name email");
+
+      if (!authenticatedUserProfile) {
+        return res.status(404).json({ message: "Authenticated user profile not found." });
+      }
+    }
+
     if (req.user.role === "visitor") {
       const existingVisit = await Visitor.findOne({
         userId: req.user.id,
@@ -469,10 +491,7 @@ export const createVisitor = async (req, res) => {
       }
     }
 
-    const defaultStatus =
-      req.user.role === "security" || req.user.role === "admin"
-        ? "approved"
-        : "pending";
+    const defaultStatus = isManualCheckIn ? "approved" : "pending";
 
     const { expectedCheckIn, expectedCheckOut } = req.body;
 
@@ -486,11 +505,28 @@ export const createVisitor = async (req, res) => {
       });
     }
 
-    const normalizedName = req.body.name?.trim() || req.user.name || "Guest Visitor";
-    const normalizedEmail = (req.body.email || req.user.email || "").trim().toLowerCase();
+    const normalizedName = isManualCheckIn
+      ? (req.body.name || "").trim()
+      : (authenticatedUserProfile?.name || "").trim();
+    const normalizedEmail = isManualCheckIn
+      ? (req.body.email || "").trim().toLowerCase()
+      : (authenticatedUserProfile?.email || "").trim().toLowerCase();
+
+    if (isManualCheckIn && !normalizedName) {
+      return res.status(400).json({
+        message: "Visitor name is required for manual check-in.",
+      });
+    }
+
+    if (!isManualCheckIn && (!normalizedName || !normalizedEmail)) {
+      return res.status(400).json({
+        message: "Profile name and email are required for self check-in. Please update your profile.",
+      });
+    }
+
     let visitorUserId = req.user.id;
 
-    if (req.user.role === "security" || req.user.role === "admin") {
+    if (isManualCheckIn) {
       if (!normalizedEmail) {
         return res.status(400).json({
           message: "Visitor email is required for manual check-in.",
@@ -568,12 +604,12 @@ export const createVisitor = async (req, res) => {
       photo: null,
       cardIssuedAt: null,
       checkInTime:
-        req.user.role === "security" || req.user.role === "admin"
+        isManualCheckIn
           ? new Date()
           : null,
       checkInType,
       checkInApprovedBy:
-        req.user.role === "security" || req.user.role === "admin"
+        isManualCheckIn
           ? req.user.id
           : null,
     });
@@ -590,7 +626,7 @@ export const createVisitor = async (req, res) => {
 
       await visitor.save();
 
-      if (req.user.role === "security" || req.user.role === "admin") {
+      if (isManualCheckIn) {
         await createNotificationForRoles(["admin"], {
           visitorId: visitor._id,
           type: "check-in-request",
@@ -655,38 +691,20 @@ export const checkoutVisitor = async (req, res) => {
       return res.status(404).json({ message: "Visitor not found" });
     }
 
-    if (
-      visitor.userId.toString() !== req.user.id &&
-      req.user.role !== "admin" &&
-      req.user.role !== "security"
-    ) {
-      return res.status(403).json({ message: "Not allowed" });
+    if (req.user.role !== "security") {
+      return res.status(403).json({ message: "Only security can approve checkout." });
     }
 
-    if (visitor.status !== "approved") {
-      return res
-        .status(400)
-        .json({ message: "Visitor must be approved before checkout." });
-    }
-
-    const isPrivileged =
-      req.user.role === "admin" || req.user.role === "security";
-
-    if (
-      visitor.qrTokenExpiry &&
-      new Date() > visitor.qrTokenExpiry &&
-      !isPrivileged
-    ) {
-      await notifySecurityOfExpiredVisit(visitor);
+    if (!isEligibleForSecurityCheckout(visitor)) {
       return res.status(400).json({
-        message: "QR code expired. Please request a new approval.",
+        message: "Checkout is allowed only after user request or QR expiry.",
       });
     }
 
     await finalizeCheckout({
       visitor,
       actor: req.user,
-      checkoutChannel: isPrivileged ? "staff-assisted" : "self-service",
+      checkoutChannel: "staff-assisted",
     });
 
     const checkoutAlertHtml = `
@@ -732,6 +750,12 @@ export const requestCheckout = async (req, res) => {
       return res.status(403).json({ message: "Not allowed" });
     }
 
+    if (visitor.status === "checkout-requested") {
+      return res
+        .status(400)
+        .json({ message: "Checkout request already submitted" });
+    }
+
     if (visitor.status !== "approved") {
       return res
         .status(400)
@@ -750,7 +774,9 @@ export const requestCheckout = async (req, res) => {
         .json({ message: "Visitor has already checked out" });
     }
 
-    // Create a notification for security team to approve checkout
+    visitor.status = "checkout-requested";
+    await visitor.save();
+
     await createNotificationForRoles(["security"], {
       visitorId: visitor._id,
       type: "checkout-request",
@@ -804,7 +830,7 @@ export const securityCheckoutVisitor = async (req, res) => {
       return res.status(404).json({ message: "Visitor not found for the scanned input." });
     }
 
-    if (visitor.status !== "approved") {
+    if (!isEligibleForSecurityCheckout(visitor)) {
       return res.status(400).json({ message: "Visitor is not currently eligible for checkout." });
     }
 
@@ -830,6 +856,7 @@ export const getVisitorStats = async (req, res) => {
   try {
     const totalVisitors = await Visitor.countDocuments();
     const visitorsInside = await Visitor.countDocuments({
+      status: { $in: ["approved", "checkout-requested"] },
       checkOutTime: null,
     });
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import API from "../../../../services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -12,7 +12,7 @@ const ReportPage = () => {
   const debouncedStartDate = useDebounce(startDate, 500);
   const debouncedEndDate = useDebounce(endDate, 500);
 
-  const fetchReports = async (options = {}) => {
+  const fetchReports = useCallback(async (options = {}) => {
     try {
       let res;
       const { startDate: requestStartDate, endDate: requestEndDate } = options;
@@ -32,24 +32,24 @@ const ReportPage = () => {
       console.error("Fetch error:", error);
       toast.error("Failed to fetch data");
     }
-  };
+  }, [debouncedStartDate, debouncedEndDate]);
 
   useEffect(() => {
     fetchReports();
-  }, []);
+  }, [fetchReports]);
 
   useEffect(() => {
     if (debouncedStartDate && debouncedEndDate) {
       fetchReports();
     }
-  }, [debouncedStartDate, debouncedEndDate]);
+  }, [debouncedStartDate, debouncedEndDate, fetchReports]);
 
   const handleFilter = () => {
     if (!startDate || !endDate) {
       toast.error("Please select both dates");
       return;
     }
-    else if(newDate(endDate) < new Date(startDate)) {
+    else if (new Date(endDate) < new Date(startDate)) {
       toast.error("End date cannot be before start date");
       return;
     }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../../../services/api";
 import { useDebounce } from "../../../../hooks/useDebounce";
@@ -30,18 +30,18 @@ const VisitorsPage = () => {
     return matchSearch && matchStatus;
   });
 
-  const fetchVisitors = async () => {
+  const fetchVisitors = useCallback(async () => {
     try {
       const res = await API.get("/visitors");
       setVisitors(res.data);
     } catch (error) {
       console.error(error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchVisitors();
-  }, []);
+  }, [fetchVisitors]);
 
   return (
     <div className="p-2 sm:p-4 md:p-6">

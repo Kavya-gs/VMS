@@ -11,14 +11,28 @@ const parseDateValue = (value) => {
   return isNaN(date.getTime()) ? null : date;
 };
 
+const parseBooleanValue = (value) => {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+
+  if (rawValue === true || rawValue === "true" || rawValue === 1 || rawValue === "1") {
+    return true;
+  }
+
+  if (rawValue === false || rawValue === "false" || rawValue === 0 || rawValue === "0" || rawValue == null) {
+    return false;
+  }
+
+  return Boolean(rawValue);
+};
+
 export const visitorSchema = yup.object({
   securityManual: yup.boolean().default(false),
 
   name: yup
     .string()
     .trim()
-    .when("securityManual", (securityManual = false, schema) =>
-      securityManual
+    .when("securityManual", (securityManual, schema) =>
+      parseBooleanValue(securityManual)
         ? schema.required("Visitor name is required for manual check-in")
         : schema.notRequired()
     ),
@@ -27,7 +41,7 @@ export const visitorSchema = yup.object({
     .string()
     .trim()
     .when("securityManual", (securityManual, schema) =>
-      securityManual
+      parseBooleanValue(securityManual)
         ? schema.email("Enter a valid email address").required("Visitor email is required for manual check-in")
         : schema.email("Enter a valid email address").notRequired()
     ),
