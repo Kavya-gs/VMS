@@ -9,39 +9,41 @@ const VisitorsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalVisitors, setTotalVisitors] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  const filterVisitor = visitors.filter((visitor) => {
-    const matchSearch =
-      visitor.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      visitor.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      visitor.purpose.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
-
-    const matchStatus =
-      statusFilter === "all" ||
-      (statusFilter === "inside" &&
-        visitor.status === "approved" &&
-        visitor.checkInTime &&
-        !visitor.checkOutTime) ||
-      (statusFilter === "checkedout" &&
-        visitor.status === "approved" &&
-        visitor.checkOutTime) ||
-      (statusFilter === "rejected" && visitor.status === "rejected");
-
-    return matchSearch && matchStatus;
-  });
-
-  const fetchVisitors = useCallback(async () => {
+  const fetchVisitors = useCallback(async (page = 1) => {
+    setLoading(true);
     try {
-      const res = await API.get("/visitors");
-      setVisitors(res.data);
+      const params = {
+        page,
+        limit: 10,
+        search: debouncedSearchTerm,
+        status: statusFilter,
+      };
+      const res = await API.get("/visitors", { params });
+      setVisitors(res.data.data);
+      setTotalPages(res.data.pagination.totalPages);
+      setTotalVisitors(res.data.pagination.total);
+      setCurrentPage(page);
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [debouncedSearchTerm, statusFilter]);
 
   useEffect(() => {
-    fetchVisitors();
-  }, [fetchVisitors]);
+    fetchVisitors(1); // Reset to page 1 when filters change
+  }, [debouncedSearchTerm, statusFilter]);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      fetchVisitors(page);
+    }
+  };
 
   return (
     <div className="p-2 sm:p-4 md:p-6">
@@ -68,104 +70,139 @@ const VisitorsPage = () => {
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white">
-        <table className="w-full min-w-[760px]">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-3 border">Name</th>
-              <th className="p-3 border">Email</th>
-              <th className="p-3 border">Purpose</th>
-              <th className="p-3 border">Person To Meet</th>
-              <th className="p-3 border">Check-In Type</th>
-              <th className="p-3 border">Check-In</th>
-              <th className="p-3 border">Check-Out</th>
-              <th className="p-3 border">Status</th>
-              <th className="p-3 border">ID Card</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {filterVisitor.map((visitor) => {
-              let statusBadge;
-
-              if (visitor.status === "rejected") {
-                statusBadge = (
-                  <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-sm">
-                    Rejected
-                  </span>
-                );
-              } else if (visitor.checkOutTime) {
-                statusBadge = (
-                  <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-sm">
-                    Checked Out
-                  </span>
-                );
-              } else if (visitor.status === "approved" && visitor.checkInTime) {
-                statusBadge = (
-                  <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-sm">
-                    Inside
-                  </span>
-                );
-              } else if (visitor.status === "approved") {
-                statusBadge = (
-                  <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm">
-                    Approved
-                  </span>
-                );
-              } else {
-                statusBadge = (
-                  <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-sm">
-                    Pending Approval
-                  </span>
-                );
-              }
-
-              const checkInTypeLabel =
-                visitor.checkInType === "self"
-                  ? "Self Checked In"
-                  : "Manual Checked In";
-
-              return (
-                <tr key={visitor._id} className="text-center">
-                  <td className="border p-2">{visitor.name}</td>
-                  <td className="border p-2">{visitor.email}</td>
-                  <td className="border p-2">{visitor.purpose}</td>
-                  <td className="border p-2">{visitor.personToMeet}</td>
-                  <td className="border p-2 text-xs text-slate-600 font-medium">{checkInTypeLabel}</td>
-
-                  <td className="border p-2">
-                    {visitor.checkInTime
-                      ? new Date(visitor.checkInTime).toLocaleString("en-IN")
-                      : "—"}
-                  </td>
-
-                  <td className="border p-2">
-                    {visitor.status === "rejected"
-                      ? "—"
-                      : visitor.checkOutTime
-                        ? new Date(visitor.checkOutTime).toLocaleString("en-IN")
-                        : "—"}
-                  </td>
-
-                  <td className="border p-2">{statusBadge}</td>
-                  <td className="border p-2">
-                    {visitor.temporaryCardId ? (
-                      <button
-                        onClick={() => navigate(`/visitor-card/${visitor._id}`)}
-                        className="rounded px-3 py-1 bg-slate-900 text-white text-sm hover:bg-slate-800"
-                      >
-                        View / Download
-                      </button>
-                    ) : (
-                      <span className="text-xs text-slate-500">Not available</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="mb-4 text-sm text-gray-600">
+        Total Visitors: {totalVisitors}
       </div>
+
+      {loading ? (
+        <div className="text-center py-8">Loading...</div>
+      ) : (
+        <>
+          <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white">
+            <table className="w-full min-w-[760px]">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-3 border">Name</th>
+                  <th className="p-3 border">Email</th>
+                  <th className="p-3 border">Purpose</th>
+                  <th className="p-3 border">Person To Meet</th>
+                  <th className="p-3 border">Check-In Type</th>
+                  <th className="p-3 border">Check-In</th>
+                  <th className="p-3 border">Check-Out</th>
+                  <th className="p-3 border">Status</th>
+                  <th className="p-3 border">ID Card</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {visitors.map((visitor) => {
+                  let statusBadge;
+
+                  if (visitor.status === "rejected") {
+                    statusBadge = (
+                      <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-sm">
+                        Rejected
+                      </span>
+                    );
+                  } else if (visitor.checkOutTime) {
+                    statusBadge = (
+                      <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-sm">
+                        Checked Out
+                      </span>
+                    );
+                  } else if (visitor.status === "approved" && visitor.checkInTime) {
+                    statusBadge = (
+                      <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-sm">
+                        Inside
+                      </span>
+                    );
+                  } else if (visitor.status === "approved") {
+                    statusBadge = (
+                      <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm">
+                        Approved
+                      </span>
+                    );
+                  } else {
+                    statusBadge = (
+                      <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-sm">
+                        Pending Approval
+                      </span>
+                    );
+                  }
+
+                  const checkInTypeLabel =
+                    visitor.checkInType === "self"
+                      ? "Self Checked In"
+                      : "Manual Checked In";
+
+                  return (
+                    <tr key={visitor._id} className="text-center">
+                      <td className="border p-2">{visitor.name}</td>
+                      <td className="border p-2">{visitor.email}</td>
+                      <td className="border p-2">{visitor.purpose}</td>
+                      <td className="border p-2">{visitor.personToMeet}</td>
+                      <td className="border p-2 text-xs text-slate-600 font-medium">{checkInTypeLabel}</td>
+
+                      <td className="border p-2">
+                        {visitor.checkInTime
+                          ? new Date(visitor.checkInTime).toLocaleString("en-IN")
+                          : "—"}
+                      </td>
+
+                      <td className="border p-2">
+                        {visitor.status === "rejected"
+                          ? "—"
+                          : visitor.checkOutTime
+                            ? new Date(visitor.checkOutTime).toLocaleString("en-IN")
+                            : "—"}
+                      </td>
+
+                      <td className="border p-2">{statusBadge}</td>
+                      <td className="border p-2">
+                        {visitor.temporaryCardId ? (
+                          <button
+                            onClick={() => navigate(`/visitor-card/${visitor._id}`)}
+                            className="rounded px-3 py-1 bg-slate-900 text-white text-sm hover:bg-slate-800"
+                          >
+                            View / Download
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-500">Not available</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination  */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Previous
+              </button>
+
+              <span className="text-sm">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

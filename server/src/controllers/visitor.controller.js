@@ -651,9 +651,64 @@ export const createVisitor = async (req, res) => {
 
 export const getVisitors = async (req, res) => {
   try {
-    const visitors = await Visitor.find().sort({ createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
+    const statusFilter = req.query.status || "all";
+
+    let query = {};
+
+    //  search query
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { purpose: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Build status filter
+    if (statusFilter !== "all") {
+      if (statusFilter === "inside") {
+        query.status = "approved";
+        query.checkInTime = { $ne: null };
+        query.checkOutTime = null;
+      } else if (statusFilter === "checkedout") {
+        query.status = "checked-out";
+      } else if (statusFilter === "rejected") {
+        query.status = "rejected";
+      }
+    }
+
+    // If no pagination params, return all results 
+    if (!req.query.page && !req.query.limit) {
+      const visitors = await Visitor.find(query).sort({ createdAt: -1 });
+      const withHostNames = await attachHostNames(visitors);
+      return res.status(200).json(withHostNames);
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const total = await Visitor.countDocuments(query);
+
+    // Get paginated results
+    const visitors = await Visitor.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
     const withHostNames = await attachHostNames(visitors);
-    res.status(200).json(withHostNames);
+
+    res.status(200).json({
+      data: withHostNames,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
