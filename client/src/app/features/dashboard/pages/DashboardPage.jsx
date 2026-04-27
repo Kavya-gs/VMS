@@ -131,7 +131,7 @@ const DashboardPage = () => {
 
   const COLORS = ["#0d9e23", "#ef4444"];
 
-  const roleTitle = role === "admin" ? "Admin Command Center" : "Security Operations";
+  const roleTitle = role === "admin" ? "Admin Dashboard" : "Security Operations";
   const roleDescription =
     role === "admin"
       ? "Track approvals, occupancy, and weekly movement trends from one place."
@@ -147,7 +147,6 @@ const DashboardPage = () => {
         <div className="absolute -right-10 -top-8 h-36 w-36 rounded-full bg-sky-100/70 blur-2xl" />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Main Dashboard</p>
             <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900">{roleTitle}</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">{roleDescription}</p>
           </div>

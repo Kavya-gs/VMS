@@ -22,8 +22,6 @@ const VisitorIdCard = ({ visitor }) => {
             </div>
           )}
           <div className="mt-4 text-left w-full">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Card ID</p>
-            <p className="mt-1 text-base font-bold text-slate-900">{visitor.temporaryCardId || "TBD"}</p>
             <p className="mt-3 text-xs text-slate-500">Valid until</p>
             <p className="text-sm font-medium text-slate-700">{expiry}</p>
           </div>
@@ -36,7 +34,7 @@ const VisitorIdCard = ({ visitor }) => {
               <h2 className="mt-2 text-2xl font-semibold text-slate-900">{visitor.name}</h2>
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-right">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Temporary Card</p>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Temporary Card ID</p>
               <p className="mt-1 text-sm font-semibold text-slate-900">{visitor.temporaryCardId || "TBD"}</p>
             </div>
           </div>
