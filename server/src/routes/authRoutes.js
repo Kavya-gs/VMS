@@ -12,19 +12,19 @@ import {
 } from "../controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/roleMiddleware.js";
+import { forgotPasswordRateLimiter, loginRateLimiter, otpRateLimiter, registerRateLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/login", login);
-router.post("/verify-otp", verifyOtp);
+router.post("/register", registerRateLimiter, register);
+router.post("/login", loginRateLimiter, login);
+router.post("/verify-otp", otpRateLimiter, verifyOtp);
 router.get("/profile", authMiddleware, getProfile);
 router.put("/profile", authMiddleware, updateProfile);
 router.post("/admin/create-staff", authMiddleware, isAdmin, createStaffUser);
 
-
-router.post("/forgot-password/request", requestPasswordReset);
-router.post("/forgot-password/verify", verifyPasswordResetOtp);
-router.post("/forgot-password/reset", resetPassword);
+router.post("/forgot-password/request", forgotPasswordRateLimiter, requestPasswordReset);
+router.post("/forgot-password/verify", otpRateLimiter, verifyPasswordResetOtp);
+router.post("/forgot-password/reset", forgotPasswordRateLimiter, resetPassword);
 
 export default router;
