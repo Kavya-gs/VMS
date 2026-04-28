@@ -6,6 +6,9 @@ import {
   getProfile,
   createStaffUser,
   updateProfile,
+  requestPasswordReset,
+  verifyPasswordResetOtp,
+  resetPassword,
 } from "../controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import { isAdmin } from "../middleware/roleMiddleware.js";
@@ -18,5 +21,10 @@ router.post("/verify-otp", verifyOtp);
 router.get("/profile", authMiddleware, getProfile);
 router.put("/profile", authMiddleware, updateProfile);
 router.post("/admin/create-staff", authMiddleware, isAdmin, createStaffUser);
+
+
+router.post("/forgot-password/request", requestPasswordReset);
+router.post("/forgot-password/verify", verifyPasswordResetOtp);
+router.post("/forgot-password/reset", resetPassword);
 
 export default router;

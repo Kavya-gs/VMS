@@ -398,3 +398,133 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Request OTP
+export const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.status(200).json({
+        message: "If an account exists with this email, an OTP has been sent",
+      });
+    }
+
+    const otp = `${Math.floor(100000 + Math.random() * 900000)}`;
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    user.passwordResetOtpHash = otpHash;
+    user.passwordResetOtpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+    await user.save();
+
+    const otpDelivery = await sendOtpEmail(user.email, otp);
+    if (!otpDelivery.delivered) {
+      return res.status(500).json({ message: "Failed to send OTP email. Please try again." });
+    }
+
+    return res.status(200).json({
+      message: "If an account exists with this email, an OTP has been sent",
+      email: user.email, 
+    });
+  } catch (error) {
+    console.error("REQUEST PASSWORD RESET ERROR:", error);
+    res.status(500).json({ message: "Failed to process password reset request" });
+  }
+};
+
+// Verify OTP
+export const verifyPasswordResetOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user || !user.passwordResetOtpHash || !user.passwordResetOtpExpiresAt) {
+      return res.status(400).json({ message: "OTP not requested or already used" });
+    }
+
+    // Check OTP expiry
+    if (new Date() > user.passwordResetOtpExpiresAt) {
+      user.passwordResetOtpHash = null;
+      user.passwordResetOtpExpiresAt = null;
+      await user.save();
+      return res.status(400).json({ message: "OTP expired. Please request a new one." });
+    }
+
+    // Verify OTP
+    const isOtpValid = await bcrypt.compare(otp, user.passwordResetOtpHash);
+    if (!isOtpValid) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    return res.status(200).json({
+      message: "OTP verified successfully",
+      verified: true,
+    });
+  } catch (error) {
+    console.error("VERIFY PASSWORD RESET OTP ERROR:", error);
+    res.status(500).json({ message: "OTP verification failed" });
+  }
+};
+
+// Forgot Password - Step 3: Reset Password
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: "Email and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    // Verify OTP exists and is valid (security check)
+    if (!user.passwordResetOtpHash || !user.passwordResetOtpExpiresAt) {
+      return res.status(400).json({ message: "Please verify OTP first" });
+    }
+
+    if (new Date() > user.passwordResetOtpExpiresAt) {
+      user.passwordResetOtpHash = null;
+      user.passwordResetOtpExpiresAt = null;
+      await user.save();
+      return res.status(400).json({ message: "OTP expired. Please request a new one." });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    // Clear OTP fields
+    user.passwordResetOtpHash = null;
+    user.passwordResetOtpExpiresAt = null;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Password reset successfully. Please login with your new password.",
+    });
+  } catch (error) {
+    console.error("RESET PASSWORD ERROR:", error);
+    res.status(500).json({ message: "Failed to reset password" });
+  }
+};

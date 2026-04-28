@@ -28,6 +28,14 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  passwordResetOtpHash: {
+    type: String,
+    default: null,
+  },
+  passwordResetOtpExpiresAt: {
+    type: Date,
+    default: null,
+  },
 });
 
 export default mongoose.model("User", userSchema);

@@ -37,3 +37,29 @@ export const registerSchema = yup.object({
     .oneOf([yup.ref("password"), null], "Passwords must match")
     .required("Confirm password is required"),
 });
+
+export const forgotPasswordEmailSchema = yup.object({
+  email: yup
+    .string()
+    .email("Invalid email format")
+    .required("Email is required"),
+});
+
+export const forgotPasswordOtpSchema = yup.object({
+  otp: yup
+    .string()
+    .matches(/^\d{6}$/, "OTP must be 6 digits")
+    .required("OTP is required"),
+});
+
+export const forgotPasswordResetSchema = yup.object({
+  newPassword: yup
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .required("New password is required"),
+
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref("newPassword"), null], "Passwords must match")
+    .required("Confirm password is required"),
+});
