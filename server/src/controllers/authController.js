@@ -279,6 +279,7 @@ export const login = async (req, res) => {
     if (!match) return res.status(400).json({ message: "Invalid password" });
 
     const otp = `${Math.floor(100000 + Math.random() * 900000)}`;
+    console.log(`[auth] Generated login OTP for ${normalizedEmail}: ${otp}`);
     const otpHash = await bcrypt.hash(otp, 10);
 
     user.otpCodeHash = otpHash;
@@ -418,6 +419,7 @@ export const requestPasswordReset = async (req, res) => {
     }
 
     const otp = `${Math.floor(100000 + Math.random() * 900000)}`;
+    console.log(`[auth] Generated password reset OTP for ${normalizedEmail}: ${otp}`);
     const otpHash = await bcrypt.hash(otp, 10);
 
     user.passwordResetOtpHash = otpHash;

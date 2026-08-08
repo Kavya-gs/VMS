@@ -563,6 +563,7 @@ export const createVisitor = async (req, res) => {
       }
 
       const otp = generateOtpCode();
+      console.log(`[visitor] Generated visitor check-in OTP for ${normalizedEmail}: ${otp}`);
       const otpHash = await bcrypt.hash(otp, 10);
       visitorUser.otpCodeHash = otpHash;
       visitorUser.otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
