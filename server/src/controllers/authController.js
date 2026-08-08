@@ -287,11 +287,6 @@ export const login = async (req, res) => {
     user.otpRequestedAt = new Date();
     await user.save();
 
-    const otpDelivery = await sendOtpEmail(user.email, otp);
-    if (!otpDelivery.delivered) {
-      return res.status(500).json({ message: "Failed to send OTP email. Please try again." });
-    }
-
     return res.status(200).json({
       otpRequired: true,
       message: "OTP sent to your email",
@@ -425,11 +420,6 @@ export const requestPasswordReset = async (req, res) => {
     user.passwordResetOtpHash = otpHash;
     user.passwordResetOtpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
     await user.save();
-
-    const otpDelivery = await sendOtpEmail(user.email, otp);
-    if (!otpDelivery.delivered) {
-      return res.status(500).json({ message: "Failed to send OTP email. Please try again." });
-    }
 
     return res.status(200).json({
       message: "If an account exists with this email, an OTP has been sent",

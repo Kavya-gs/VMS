@@ -46,7 +46,7 @@ const generateOtpCode = () => {
   return `${Math.floor(100000 + Math.random() * 900000)}`;
 };
 
-const sendVisitorCredentialsEmail = async (visitor, password, otp) => {
+const sendVisitorCredentialsEmail = async (visitor, password) => {
   const html = `
     <div style="font-family: Arial, sans-serif; color: #111;">
       <h2>Visitor Login Credentials</h2>
@@ -54,9 +54,7 @@ const sendVisitorCredentialsEmail = async (visitor, password, otp) => {
       <p>Your visit has been manually checked in by our security team.</p>
       <p><strong>Email:</strong> ${visitor.email}</p>
       <p><strong>Password:</strong> ${password}</p>
-      <p><strong>OTP:</strong> ${otp}</p>
       <p>You can use these credentials to log in to the Visitor Management System.</p>
-      <p>The OTP expires in 5 minutes.</p>
     </div>
   `;
 
@@ -573,7 +571,6 @@ export const createVisitor = async (req, res) => {
       const visitorCredentialsSent = await sendVisitorCredentialsEmail(
         { name: normalizedName, email: normalizedEmail },
         generatedPassword || "(your existing password)",
-        otp,
       );
 
       if (!visitorCredentialsSent) {
