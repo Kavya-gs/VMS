@@ -3,8 +3,11 @@ import cors from "cors";
 import visitorRoutes from "./routes/visitor.routes.js"
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import { stripeWebhook } from "./controllers/payment.controller.js";
 
 const app = express();
+
+app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), stripeWebhook);
 
 const allowedOrigins = [
   "https://vms-1-w3th.onrender.com",

@@ -17,10 +17,12 @@ import {
 
 import authMiddleware from "../middleware/authMiddleware.js";
 import { isAdmin, roleMiddleware } from "../middleware/roleMiddleware.js";
+import { createVisitorCheckout } from "../controllers/payment.controller.js";
 
 const router = express.Router();
 
 router.post("/checkin", authMiddleware, createVisitor);
+router.post("/checkin/checkout", authMiddleware, createVisitorCheckout);
 
 router.get("/", authMiddleware, roleMiddleware("admin", "security"), getVisitors);
 

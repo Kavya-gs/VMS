@@ -275,7 +275,13 @@ const CheckInPage = () => {
 
     setLoading(true);
     try {
-      const response = await API.post("/visitors/checkin", data);
+      const response = role === "visitor"
+        ? await API.post("/visitors/checkin/checkout", data)
+        : await API.post("/visitors/checkin", data);
+      if (role === "visitor" && response.data.checkoutUrl) {
+        window.location.assign(response.data.checkoutUrl);
+        return;
+      }
       if (role === "security") {
         toast.success(
           "Visitor created. Credentials were sent to the visitor. Capture photo next to generate the ID card and appointment email."
