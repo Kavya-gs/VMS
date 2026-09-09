@@ -29,7 +29,7 @@ export const createVisitorCheckout = async (req, res) => {
       line_items: [{ price_data: { currency: currency(), product_data: { name: "Visitor booking fee" }, unit_amount: pending.amount }, quantity: 1 }],
       payment_intent_data: { metadata: { visitorPaymentId: pending.id } },
       metadata: { visitorPaymentId: pending.id },
-      success_url: `${process.env.CLIENT_URL}/checkin?payment=success`,
+      success_url: `${process.env.CLIENT_URL}/checkin?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/checkin?payment=cancelled`,
     });
     pending.stripeCheckoutSessionId = session.id;
@@ -75,5 +75,19 @@ export const stripeWebhook = async (req, res) => {
   } catch (error) {
     console.error("Stripe webhook error:", error);
     res.status(500).json({ message: "Webhook processing failed" });
+  }
+};
+
+export const getVisitorPaymentStatus = async (req, res) => {
+  try {
+    const payment = await VisitorPayment.findOne({
+      stripeCheckoutSessionId: req.params.sessionId,
+      userId: req.user.id,
+    }).select("status visitorId");
+
+    if (!payment) return res.status(404).json({ message: "Payment not found" });
+    res.json({ status: payment.status, visitorId: payment.visitorId || null });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

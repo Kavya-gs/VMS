@@ -123,12 +123,14 @@ const TimePickerInput = ({ value, onChange, disabled, isCheckInTime, checkInDate
 
 const CheckInPage = () => {
   const [loading, setLoading] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState("");
   const [hasActiveVisit, setHasActiveVisit] = useState(false);
   const [checkInDate, setCheckInDate] = useState("");
   const [checkInTime, setCheckInTime] = useState("");
   const [checkOutDate, setCheckOutDate] = useState("");
   const [checkOutTime, setCheckOutTime] = useState("");
   const { role, user } = useAuth();
+  const navigate = useNavigate();
 
   const securityManualCheckin = role === "security" || role === "admin";
 
@@ -211,7 +213,44 @@ const CheckInPage = () => {
     checkActiveVisit();
   }, [role]);
 
-  const navigate = useNavigate();
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentResult = params.get("payment");
+    const sessionId = params.get("session_id");
+
+    if (paymentResult === "cancelled") {
+      toast.error("Payment was cancelled. Your visit was not submitted.");
+      window.history.replaceState({}, document.title, "/checkin");
+      return undefined;
+    }
+
+    if (paymentResult !== "success" || !sessionId || role !== "visitor") return undefined;
+
+    let attempts = 0;
+    setPaymentMessage("Payment received. Waiting for Stripe confirmation...");
+    const timer = setInterval(async () => {
+      attempts += 1;
+      try {
+        const response = await API.get(`/visitors/checkin/payment-status/${sessionId}`, { showLoader: false });
+        if (response.data.status === "completed" && response.data.visitorId) {
+          clearInterval(timer);
+          toast.success("Payment confirmed. Visit request submitted.");
+          navigate(`/visitor-card/${response.data.visitorId}`);
+        } else if (["failed", "cancelled"].includes(response.data.status)) {
+          clearInterval(timer);
+          toast.error("Payment was not completed. Your visit was not submitted.");
+          setPaymentMessage("");
+        }
+      } catch (error) {
+        if (attempts >= 10) {
+          clearInterval(timer);
+          setPaymentMessage("Payment received, but confirmation is still pending. Refresh shortly.");
+        }
+      }
+    }, 2000);
+
+    return () => clearInterval(timer);
+  }, [navigate, role]);
 
   const pad = (value) => String(value).padStart(2, "0");
 
@@ -308,6 +347,11 @@ const CheckInPage = () => {
         <p className="mt-1 text-sm text-slate-500">
           Submit your visit details. Date and time must be in the future.
         </p>
+        {paymentMessage && (
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {paymentMessage}
+          </p>
+        )}
       </div>
       <form
         onSubmit={handleSubmit(onSubmit)}
