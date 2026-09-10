@@ -1,7 +1,13 @@
 import axios from "axios";
 
+const configuredApiUrl = import.meta.env.VITE_API_URL;
+const apiUrl =
+  import.meta.env.PROD && (!configuredApiUrl || configuredApiUrl.includes("localhost"))
+    ? window.location.origin
+    : configuredApiUrl;
+
 const API = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL}/api`,
+  baseURL: `${apiUrl}/api`,
 });
 
 let loadingContext = null;

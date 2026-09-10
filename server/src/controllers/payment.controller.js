@@ -41,20 +41,47 @@ export const createVisitorCheckout = async (req, res) => {
 };
 
 export const stripeWebhook = async (req, res) => {
+  console.info("[stripe-webhook] received", {
+    signaturePresent: Boolean(req.headers["stripe-signature"]),
+  });
   let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, req.headers["stripe-signature"], process.env.STRIPE_WEBHOOK_SECRET);
   } catch (error) {
+    console.error("[stripe-webhook] signature verification failed", error.message);
     return res.status(400).send(`Webhook Error: ${error.message}`);
   }
 
+  console.info("[stripe-webhook] verified", { eventId: event.id, type: event.type });
+
   try {
     const existingEvent = await WebhookEvent.findOne({ stripeEventId: event.id });
-    if (existingEvent) return res.json({ received: true, duplicate: true });
-    await WebhookEvent.create({ stripeEventId: event.id, type: event.type });
+    if (existingEvent?.processedAt) {
+      const isSuccessfulCheckout = [
+        "checkout.session.completed",
+        "checkout.session.async_payment_succeeded",
+      ].includes(event.type);
+      const pendingPayment = isSuccessfulCheckout
+        ? await VisitorPayment.findOne({
+            stripeCheckoutSessionId: event.data.object.id,
+            status: "pending",
+          })
+        : null;
+
+      if (!pendingPayment) return res.json({ received: true, duplicate: true });
+      console.warn("[stripe-webhook] reprocessing event for pending payment", {
+        eventId: event.id,
+        stripeCheckoutSessionId: event.data.object.id,
+      });
+    }
 
     const object = event.data.object;
     const paymentId = object.metadata?.visitorPaymentId;
+    console.info("[stripe-webhook] event metadata", {
+      eventId: event.id,
+      type: event.type,
+      visitorPaymentId: paymentId || null,
+    });
     if (paymentId && (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded")) {
       const pending = await VisitorPayment.findOne({ _id: paymentId, status: "pending" });
       if (pending) {
@@ -63,6 +90,32 @@ export const stripeWebhook = async (req, res) => {
         pending.stripePaymentIntentId = object.payment_intent || pending.stripePaymentIntentId;
         pending.visitorId = visitor._id;
         await pending.save();
+        console.info("[stripe-webhook] visitor created", {
+          eventId: event.id,
+          visitorPaymentId: paymentId,
+          visitorId: visitor.id,
+          status: pending.status,
+        });
+      } else {
+        console.warn("[stripe-webhook] pending payment not found", { visitorPaymentId: paymentId });
+      }
+    }
+    if (!paymentId && (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded")) {
+      const pending = await VisitorPayment.findOne({ stripeCheckoutSessionId: object.id, status: "pending" });
+      if (pending) {
+        const visitor = await Visitor.create({ name: pending.name, email: pending.email, purpose: pending.purpose, personToMeet: pending.personToMeet, expectedCheckIn: pending.expectedCheckIn, expectedCheckOut: pending.expectedCheckOut, userId: pending.userId, status: "pending", checkInTime: null, checkInType: "self" });
+        pending.status = "completed";
+        pending.stripePaymentIntentId = object.payment_intent || pending.stripePaymentIntentId;
+        pending.visitorId = visitor._id;
+        await pending.save();
+        console.info("[stripe-webhook] visitor created using session fallback", {
+          eventId: event.id,
+          stripeCheckoutSessionId: object.id,
+          visitorId: visitor.id,
+          status: pending.status,
+        });
+      } else {
+        console.warn("[stripe-webhook] no pending payment matched session", { stripeCheckoutSessionId: object.id });
       }
     }
     if (paymentId && (event.type === "checkout.session.async_payment_failed" || event.type === "payment_intent.payment_failed")) {
@@ -71,6 +124,13 @@ export const stripeWebhook = async (req, res) => {
     if (paymentId && event.type === "checkout.session.expired") {
       await VisitorPayment.findByIdAndUpdate(paymentId, { status: "cancelled" });
     }
+    if (existingEvent) {
+      existingEvent.processedAt = new Date();
+      await existingEvent.save();
+    } else {
+      await WebhookEvent.create({ stripeEventId: event.id, type: event.type, processedAt: new Date() });
+    }
+    console.info("[stripe-webhook] processed", { eventId: event.id, type: event.type });
     res.json({ received: true });
   } catch (error) {
     console.error("Stripe webhook error:", error);
