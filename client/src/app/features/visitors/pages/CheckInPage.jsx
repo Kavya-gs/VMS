@@ -227,8 +227,10 @@ const CheckInPage = () => {
     if (paymentResult !== "success" || !sessionId || role !== "visitor") return undefined;
 
     let attempts = 0;
+    let stopped = false;
     setPaymentMessage("Payment received. Waiting for Stripe confirmation...");
     const timer = setInterval(async () => {
+      if (stopped) return;
       attempts += 1;
       try {
         const response = await API.get(`/visitors/checkin/payment-status/${sessionId}`, { showLoader: false });
@@ -244,12 +246,18 @@ const CheckInPage = () => {
       } catch (error) {
         if (attempts >= 10) {
           clearInterval(timer);
-          setPaymentMessage("Payment received, but confirmation is still pending. Refresh shortly.");
+          stopped = true;
+          window.history.replaceState({}, document.title, "/checkin");
+          setPaymentMessage("Payment succeeded, but the server webhook is not responding. Deploy the latest backend and configure the Stripe webhook, then refresh this page.");
+          toast.error("Payment succeeded, but the visit could not be confirmed yet.");
         }
       }
     }, 2000);
 
-    return () => clearInterval(timer);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
   }, [navigate, role]);
 
   const pad = (value) => String(value).padStart(2, "0");
